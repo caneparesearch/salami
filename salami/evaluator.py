@@ -602,6 +602,33 @@ In your case we are now defining the {len(subset)+1}th coordination environment 
             structure_to_be_evaluate,
         )
 
+    def interpret_returned_value(self, returned_value, logger=None):
+        """Intepret the returned value of several functions in this class
+
+        Args:
+            returned_value (Tuple): len=4 tuple from the function _check_coordination,_check_bond_coordination,_check_subsubrequirement,_check_subrequirement
+            logger (fastlogging.logger or None, optional): a logger to record the output, otherwise directly print out. Defaults to None.
+        """
+        obsoleted()
+        (
+            pass_test,
+            correct_coordination_index,
+            wrong_coordination_index,
+            coordination_information,
+        ) = returned_value
+
+        if logger is not None:
+            log = logger.info
+        else:
+            log = print
+
+        result_str = f"pass the coordination test: {pass_test}\n"
+        result_str += f"correct coordination index: {correct_coordination_index}\n"
+        result_str += f"wrong coordination index: {wrong_coordination_index}\n"
+        result_str += f"coordination information: {coordination_information}\n"
+
+        log(result_str)
+
 
 class CoordinationEvaluator1(AbstractCoordinationEvaluator):
     """
@@ -652,33 +679,6 @@ class CoordinationEvaluator1(AbstractCoordinationEvaluator):
             bonds_and_coordination=self.bonds_and_coordination,
             quit_on_failure=False,
         )
-
-    def interpret_returned_value(self, returned_value, logger=None):
-        """Intepret the returned value of several functions in this class
-
-        Args:
-            returned_value (Tuple): len=4 tuple from the function _check_coordination,_check_bond_coordination,_check_subsubrequirement,_check_subrequirement
-            logger (fastlogging.logger or None, optional): a logger to record the output, otherwise directly print out. Defaults to None.
-        """
-        obsoleted()
-        (
-            pass_test,
-            correct_coordination_index,
-            wrong_coordination_index,
-            coordination_information,
-        ) = returned_value
-
-        if logger is not None:
-            log = logger.info
-        else:
-            log = print
-
-        result_str = f"pass the coordination test: {pass_test}\n"
-        result_str += f"correct coordination index: {correct_coordination_index}\n"
-        result_str += f"wrong coordination index: {wrong_coordination_index}\n"
-        result_str += f"coordination information: {coordination_information}\n"
-
-        log(result_str)
 
     @classmethod
     def _get_sufficient_indices_for_coordination_check(

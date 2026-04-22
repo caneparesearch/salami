@@ -67,7 +67,7 @@ class Dumper:
             "valid_slabs": self._filename_for_initial_slabs,
             "tasker_slabs": self._filename_for_initial_slabs,
             "symmetrified_slabs": self._filename_for_initial_slabs,
-            "salami": self._filename_for_salami,
+
         }
 
         pass
@@ -165,6 +165,9 @@ class Dumper:
         self.logger.info(
             f"A slab with charge {structure.charge:.1f} with name {filename} is added with following information: miller_index: {structure.miller_index}  shift on c direction: {structure.shift:.2f} is polar?: {structure.is_polar()} is symmetric?:{structure.check_slab_symmetry()} bonds broken:{structure.energy} center of mass: [{structure.center_of_mass[0]:.2f},{structure.center_of_mass[1]:.2f},{structure.center_of_mass[2]:.2f}] properties: {[(propertiy_string,structure.site_properties[propertiy_string][0]) for propertiy_string in structure.site_properties]}, interface properties: {structure.interface_properties}"
         )
+
+
+
 
     def dump_structures(self, structures, *args, dump_type="structures", **kwargs):
         """function to dump several structures, the filename is generated based on dump_type as defined in self.filename_generator

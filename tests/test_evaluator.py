@@ -11,6 +11,7 @@ from salami.evaluator import (
     CoordinationEvaluator1,
     StochiometricEvaluator,
     LammpsEnergyStamper,
+    CoordinationEvaluator0_obsolete,
 )
 from pymatgen.core.composition import Composition
 import os
@@ -43,7 +44,8 @@ def test_Na3PS4():
     conv_structure = Structure.from_file(
         os.path.join(file_dir, "cubic-Na3PS4", "prim.cif"), primitive=False
     )
-    ev = CoordinationEvaluator1(
+    ev = CoordinationEvaluator0_obsolete(
+        criterion=True,
         bonds_and_coordination=[
             (
                 {
@@ -67,7 +69,7 @@ def test_Na3PS4():
         },
     )
     print("\n\n\n\nchecking subsubrequirement\n\n\n\n")
-    ev.interpret_returned_value(result1)
+    # ev.interpret_returned_value(result1)
 
     result2 = ev._check_subrequirement(
         structure_to_be_check=s,
@@ -79,12 +81,12 @@ def test_Na3PS4():
         ),
     )
     print("\n\n\n\nchecking subrequirement\n\n\n\n")
-    ev.interpret_returned_value(result2)
+    # ev.interpret_returned_value(result2)
     # result=ev.evaluate(s)
 
     # ev.interpret_returned_value(result)
     # ev.read_bonds_and_coordination()
-
+    ev=CoordinationEvaluator1(bonds_and_coordination=NPS_BONDS_AND_COORD)
     result3 = ev._check_coordination(
         structure=s,
         bonds_and_coordination=[
@@ -102,7 +104,10 @@ def test_Na3PS4():
 
 
 def test_Li6PS5Cl():
-    ev = CoordinationEvaluator1(bonds_and_coordination=NPS_BONDS_AND_COORD)
+    ev = CoordinationEvaluator0_obsolete(
+        criterion=True,
+        bonds_and_coordination=NPS_BONDS_AND_COORD
+        )
 
     prim_structure = Structure.from_file(
         os.path.join(file_dir, "Li6PS5Cl", "prim.cif"), primitive=True
@@ -132,6 +137,8 @@ def test_Li6PS5Cl():
     print("\n\n\n\nchecking subrequirement\n\n\n\n")
     ev.interpret_returned_value(result2)
 
+
+    ev=CoordinationEvaluator1(bonds_and_coordination=NPS_BONDS_AND_COORD)
     result3 = ev._check_coordination(
         structure=prim_structure,
         bonds_and_coordination=[

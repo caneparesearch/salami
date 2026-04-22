@@ -1,3 +1,10 @@
+[![CI Status](https://github.com/caneparesearch/salami/actions/workflows/python-test.yaml/badge.svg)](https://github.com/caneparesearch/salami/actions/workflows/python-test.yaml)
+[![Requires Python 3.12+](https://img.shields.io/badge/Python-3.12+-blue.svg?logo=python&logoColor=white)](https://python.org/downloads)
+[![Paper](https://img.shields.io/badge/Adv.Eng.Mat.-2023.04.230-blue?logo=elsevier&logoColor=white)](https://doi.org/10.1002/aenm.202304230)
+
+
+[![PyPI Downloads (to be done)]](https://pypi.org)
+[![Conda Downloads]](https://anaconda.org/conda-forge/pymatgen)
 
 # SALAMI: Symmetric Atomic Layers for Arbitrary Multinary Interfaces
 SALAMI generates symmetric, charge-neutral, stoichiometric or off-stoichiometric, dipole-free slab models for multinary compounds. 
