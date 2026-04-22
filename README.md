@@ -4,7 +4,7 @@
 
 
 [![PyPI Downloads (to be done)]](https://pypi.org)
-[![Conda Downloads]](https://anaconda.org/conda-forge/pymatgen)
+[![Conda Downloads]](https://anaconda.org/conda-forge/)
 
 # SALAMI: Symmetric Atomic Layers for Arbitrary Multinary Interfaces
 SALAMI generates symmetric, charge-neutral, stoichiometric or off-stoichiometric, dipole-free slab models for multinary compounds. 
