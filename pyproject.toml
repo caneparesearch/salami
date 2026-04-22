@@ -1,0 +1,110 @@
+[build-system]
+# Crucial: Locking Cython version in the build environment to prevent float_t errors on Python 3.8
+requires = [
+    "setuptools>=61.0",
+    "wheel",
+    "Cython==0.29.26; python_version == '3.8'",
+    "Cython>=3.0; python_version == '3.12'",
+    "numpy==1.22.0; python_version == '3.8'",
+    "numpy>=1.26.0; python_version == '3.12'"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "salami"
+version = "0.1.dev0"
+description = "Symmetric slab model generator for multinary compounds"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT License"}
+authors = [
+    {name = "Weihang Xie", email = "wxie@u.nus.edu"}
+]
+maintainers = [
+    {name = "Weihang Xie", email = "wxie@u.nus.edu"}
+]
+
+dependencies = [
+    # ==========================================
+    # 1. Python 3.8 (not supported anymore...)
+    # ==========================================
+
+    "tqdm==4.62.3; python_version == '3.8'",
+    "joblib==1.3.2; python_version == '3.8'",
+    "fastlogging==1.0.0; python_version == '3.8'",
+    "more-itertools; python_version == '3.8'",
+    "seaborn; python_version == '3.8'",
+
+    # ==========================================
+    # 2. Python 3.12 (Modern Environment)
+    # ==========================================
+    "matplotlib; python_version == '3.12'",
+    "pandas; python_version == '3.12'",
+    "tqdm; python_version == '3.12'",
+    "joblib; python_version == '3.12'",
+    "fastlogging==1.0.0; python_version == '3.12'",
+    "colorama; python_version == '3.12'",
+    "more-itertools==10.2.0; python_version == '3.12'",
+    "seaborn==0.13.2; python_version == '3.12'",
+    "pymatgen<=2025.1.9; python_version == '3.12'", # Version constraint as requested
+    "mpmath; python_version == '3.12'",
+
+    # ==========================================
+    # 3. Other Python Versions (Untested)
+    # ==========================================
+    "matplotlib; python_version != '3.8' and python_version != '3.12'",
+    "pandas; python_version != '3.8' and python_version != '3.12'",
+    "tqdm; python_version != '3.8' and python_version != '3.12'",
+    "joblib; python_version != '3.8' and python_version != '3.12'",
+    "fastlogging; python_version != '3.8' and python_version != '3.12'",
+    "colorama; python_version != '3.8' and python_version != '3.12'",
+    "more-itertools; python_version != '3.8' and python_version != '3.12'",
+    "seaborn; python_version != '3.8' and python_version != '3.12'",
+    "pymatgen; python_version != '3.8' and python_version != '3.12'",
+    "mpmath; python_version != '3.8' and python_version != '3.12'",
+
+    # General dependencies
+    "glob2==0.7",
+    "dynaconf",
+    "psutil",
+]
+
+[project.optional-dependencies]
+# GUI dependencies: install via `pip install ".[gui]"`
+gui = [
+    "Gooey==1.0.8.1; python_version == '3.8'",
+    "Gooey; python_version != '3.8'"
+]
+
+# Testing dependencies: install via `pip install ".[dev]"`
+dev = [
+    "pytest",
+    "sphinx",
+    "nbsphinx",
+    "sphinx_autodoc_typehints",
+    "sphinx_autodoc_defaultargs",
+    "docutils",
+    "sphinx_rtd_theme",
+
+    "Jinja2",
+    "myst_parser",
+]
+
+# Full installation: install via `pip install ".[all]"`
+all = [
+    "salami[gui,dev]"
+]
+
+[tool.setuptools]
+package-dir = {"salami" = "salami"}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["salami*"]
+
+
+[project.scripts]
+salami = "salami.io:main"
+
+[tool.setuptools.package-data]
+salami = ["*.yaml"]

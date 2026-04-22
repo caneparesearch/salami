@@ -1,0 +1,41 @@
+ncpus: -1
+
+dumper:
+
+  abstract:
+    dumper: default
+    dump_root: generator_dump
+    dump_paths:
+      test : test
+    dump_format:
+      - cif
+      - json
+
+  slab:
+    dumper: slab
+    dump_root: generator_dump
+    dump_paths:
+      initial_structure: initial_structure
+      initial_slabs: initial_slabs
+      valid_slabs: valid_slabs
+      symmetrified_slabs: symmetrified_slabs
+      tasker_slabs: tasker_slabs
+      initial_orthogonal_slabs: initial_orthogonal_slabs
+    dump_format:
+      - cif
+      - json
+
+
+
+
+log:
+  abstract:
+    verbosity: INFO
+    log_file_name: AbstractGenerator.log
+    log_stdout: true
+  slab:
+    verbosity: INFO
+    log_file_name: SlabGenerator.log
+    log_stdout: true  
+
+

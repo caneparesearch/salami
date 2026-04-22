@@ -1,0 +1,40 @@
+variable	T1 equal 300 
+    
+variable	Timer equal step*dt
+
+#units		metal
+#atom_style 	atomic
+newton on
+#boundary 	p p p
+#read_data       box.lmp
+
+group           Li type 1 
+group           P  type 2
+group           S  type 3
+#mass
+
+
+
+#====================Potential parameters=======================
+pair_style  	mlip ./files/Li3PS4/mlip.ini
+pair_coeff  	* *           
+neighbor    	5.0 bin	#default is 2.0 bin for unit metal
+neigh_modify 	delay 0 every 1 check yes
+
+
+#====================Relax cell=======================
+reset_timestep  0
+timestep        0.5
+fix 		1 all box/relax iso 0 vmax 0.003
+thermo          1
+thermo_style    custom step enthalpy fmax lx ly lz vol press
+min_style       cg
+minimize        1e-25 1e-25 50000 100000
+unfix		1
+
+
+
+
+dump            traj2 all custom 999999 final.lmc id mass type element xu yu zu
+dump_modify  traj2 first yes element Li P S
+minimize        1e-25 1e-25 0 0
