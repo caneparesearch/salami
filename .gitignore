@@ -41,3 +41,5 @@ coordination_requirements.dmp
 dryrun.*
 tests/test_slab_gen_srtio.py
 errors.todo
+*.whl
+*.tar.gz
