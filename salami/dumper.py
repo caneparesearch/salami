@@ -7,7 +7,7 @@ from salami.external.pmg_core_surface import Salami
 import fastlogging
 from pymatgen.core.interface import Interface
 from salami.evaluator import IndexerStamper
-
+from salami.utils import determine_available_cpus
 
 class Dumper:
     def __init__(
@@ -29,6 +29,7 @@ class Dumper:
             logger (fastlogging.logger, optional): Logger instance for logging. If None then a logger is init. Defaults to None.
         """
         self.dump_root = dump_root
+        self.dump_paths=dump_paths
         self._dump_paths = (
             {}
         )  # this is the actually used path joined with the dump_root
@@ -49,7 +50,7 @@ class Dumper:
             )
         else:
             self.logger = logger
-
+        self.ncpus = determine_available_cpus(ncpus)
         self.mp = Parallel(n_jobs=ncpus)
         self.structures = {}
         for dump_type in dump_paths:
@@ -263,28 +264,7 @@ class Dumper:
             "Planning to implement a function that will dump several structures in one file to save the disk inode"
         )
 
-
 class SalamiDumper(Dumper):
     def __init__(
-        self,
-        dump_root="generator_dump",
-        dump_paths={
-            "initial_structure": "initial_structure",
-        },
-        format=["cif", "json"],
-        **kwargs,
-    ) -> None:
-        super().__init__(dump_root, dump_paths, format, **kwargs)
-
-
-class GrainBoundaryDumper(Dumper):
-    def __init__(
-        self,
-        dump_root="generator_dump",
-        dump_paths={
-            "initial_structure": "initial_structure",
-        },
-        format=["cif"],
-        **kwargs,
-    ) -> None:
-        super().__init__(dump_root, dump_paths, format, **kwargs)
+        self, **kwargs):
+        super().__init__(**kwargs)

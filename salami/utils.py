@@ -4,6 +4,7 @@ import numpy as np
 import scipy
 import multiprocessing as mp
 import os
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 
 def deep_update(source: dict, overrides: dict) -> dict:
@@ -14,6 +15,47 @@ def deep_update(source: dict, overrides: dict) -> dict:
         else:
             source[key] = value
     return source
+
+
+def check_slab_symmetry(hkl, symm_ops, logger=None):
+    """
+     D^T * h = -h 
+    
+    values:
+        hkl (list/np.ndarray): miller indices (h, k, l)。
+        symm_ops (list): list of SymmOp objects representing the symmetry operations of the crystal.
+        logger: fastapi logger or any object with an info method for logging (optional).
+        
+    return
+        (bool, np.ndarray or None): if available: (True, rotation_matrix):
+                                   esle: (False, None)。
+    """
+
+    def log_info(message):
+        if logger and hasattr(logger, 'info'):
+            logger.info(message)
+        else:
+            print(message)
+
+    h = np.array(hkl)
+    target = -h
+
+    for op in symm_ops:
+
+        D = op.rotation_matrix
+        
+
+        res = np.dot(D.T, h)
+
+
+        if np.allclose(res, target, atol=1e-5):
+            log_info(f"found matching symmetry operation for hkl {hkl}:")
+            log_info(f"rotation matrix D:\n{D}")
+            return True, D
+
+    log_info(f"no matching symmetry operation found for hkl {hkl}, cannot construct symmetric non-polar slab.")
+    return False, None
+
 
 
 # def deep_update(a, b):

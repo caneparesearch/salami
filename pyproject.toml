@@ -85,8 +85,8 @@ dev = [
     "sphinx_autodoc_defaultargs",
     "docutils",
     "sphinx_rtd_theme",
-    "twine"
-    "build"
+    "twine",
+    "build",
     "Jinja2",
     "myst_parser",
 ]

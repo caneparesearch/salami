@@ -4,6 +4,7 @@ from pymatgen.analysis.local_env import CutOffDictNN
 from tqdm import tqdm
 from joblib import Parallel, delayed
 import itertools
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 # import collections
 import more_itertools
@@ -19,7 +20,7 @@ from salami.evaluator import (
 from salami.filter import EnergyFilter
 import fastlogging
 from fastlogging import INFO
-from salami.dumper import Dumper, SalamiDumper, GrainBoundaryDumper
+from salami.dumper import Dumper, SalamiDumper
 from salami.external.pmg_core_surface import Salami
 from salami.utils import (
     minimum_bond_length_dict_to_string,
@@ -31,6 +32,7 @@ from salami.utils import (
     determine_available_cpus,
     get_symmetric_but_possibly_charged_slab,
     _charge_representable_with_counts,
+    check_slab_symmetry
 )
 from salami.utils import realign_slab
 from salami.config import settings
@@ -62,7 +64,7 @@ class AbstractGenerator:
         """Abstract generator class for subsequent Slab Generator, Twin generator
 
         Args:
-            generator_type (str, optional): type of generator, e.g., 'slab', 'salami', or 'abstract'. Defaults to "abstract".
+            generator_type (str, optional): type of generator, e.g., 'slab', 'twins', or 'abstract'. Defaults to "abstract".
             log_setting (dict, optional): Explicit override for the fastlogging.logger settings.
             dump_setting (dict, optional): Explicit override for salami.dumper.Dumper settings.
             ncpus (int, optional): Explicit override for the number of CPUs for Multiprocessing.
@@ -98,7 +100,7 @@ class AbstractGenerator:
         self.set_dumper(logger=self.logger, **merged_dump_setting)
         print_salami_banner(self.logger)
         # 4. CPU and Parallelization Setup
-        # Priority: explicit ncpus > salami_NCPUS / yaml ncpus > default fallback
+        # Priority: explicit ncpus > SALAMI_NCPUS / yaml ncpus > default fallback
         raw_ncpus = ncpus if ncpus is not None else settings.get("ncpus", -1)
         self.ncpus = determine_available_cpus(raw_ncpus, self.logger)
         self.mp = Parallel(n_jobs=self.ncpus)
@@ -169,7 +171,6 @@ class AbstractGenerator:
         dumper_dict = {
             "default": Dumper,
             "slab": SalamiDumper,
-            "grainboundary": GrainBoundaryDumper,
         }
 
         self.dumper = dumper_dict[dumper](
@@ -383,6 +384,22 @@ class Affettatrice(AbstractGenerator):
 
             _hkl = tuple(miller_index)
 
+            sga = SpacegroupAnalyzer(self.initial_structure)
+            
+            space_group = sga.get_space_group_symbol()
+
+            symm_ops = sga.get_symmetry_operations()
+
+            symmetric_slab_possible, symop = check_slab_symmetry(
+                hkl = _hkl, symm_ops = symm_ops, logger = self.logger
+            )
+
+            if not symmetric_slab_possible:
+                self.logger.critical(
+                    f"Symmetric slab with miller index {_hkl} on a structure with space_group {space_group} is unlikely to be possible, unless there is unrecognized symmetric motif. \n Refer to the paper to see the reason. \n Salami will try anayway"
+                )
+
+
             possible_slabs = Salumificio(
                 initial_structure=self.initial_structure,
                 miller_index=_hkl,
@@ -395,6 +412,11 @@ class Affettatrice(AbstractGenerator):
                 max_broken_bonds=max_broken_bonds,
                 repair=repair,
             )
+
+            
+
+
+
         else:
             raise TypeError(
                 "bad input for miller_index, should be len=3 list or integer"

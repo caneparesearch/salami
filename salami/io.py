@@ -315,10 +315,10 @@ def main():
                     },
                     "dump_format": args.dump_format,
                 },
-                "salami": {
+                "twins": {
                     "dumper": "grainboundary",
                     "dump_root": args.dump_root,
-                    "dump_paths": {"salami": "salami"},
+                    "dump_paths": {"twins": "twins"},
                     "dump_format": args.dump_format,
                 },
             },
@@ -333,9 +333,9 @@ def main():
                     "log_file_name": "SlabGenerator.log",
                     "log_stdout": True,
                 },
-                "salami": {
+                "twins": {
                     "verbosity": level_str,
-                    "log_file_name": "salamiGenerator.log",
+                    "log_file_name": "twingenerator.log",
                     "log_stdout": True,
                 },
             },
