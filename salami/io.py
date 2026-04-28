@@ -20,10 +20,10 @@ try:
     from gooey import Gooey, GooeyParser
 except Exception:
     print("Gooey is not installed. Using command line version")
+    Gooey = None
     GooeyParser = ArgumentParser
 
 
-@Gooey(optional_cols=2, program_name=f"SALAMI GUI", default_size=(1024, 800))
 def main():
     package_version = version('salami')
 
@@ -594,6 +594,10 @@ slabgen.generate_initial_slabs(
             print(f"Validation complete. Result: {result}")
         except Exception as e:
             print(f"Validation failed with error: {e}")
+
+
+if Gooey is not None:
+    main = Gooey(optional_cols=2, program_name=f"SALAMI GUI", default_size=(1024, 800))(main)
 
 
 if __name__ == "__main__":

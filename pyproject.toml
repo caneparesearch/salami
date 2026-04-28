@@ -67,6 +67,7 @@ dependencies = [
     "glob2==0.7",
     "dynaconf",
     "psutil",
+    "fastlogging"
 ]
 
 [project.optional-dependencies]
