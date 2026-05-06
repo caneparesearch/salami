@@ -53,7 +53,7 @@ def test_Na3PS4():
                     ("Na+", "S2-"): (3.03, 1, 6),
                 },
             ),
-        ]
+        ],
     )
 
     s = Structure.from_file(
@@ -86,7 +86,7 @@ def test_Na3PS4():
 
     # ev.interpret_returned_value(result)
     # ev.read_bonds_and_coordination()
-    ev=CoordinationEvaluator1(bonds_and_coordination=NPS_BONDS_AND_COORD)
+    ev = CoordinationEvaluator1(bonds_and_coordination=NPS_BONDS_AND_COORD)
     result3 = ev._check_coordination(
         structure=s,
         bonds_and_coordination=[
@@ -105,9 +105,8 @@ def test_Na3PS4():
 
 def test_Li6PS5Cl():
     ev = CoordinationEvaluator0_obsolete(
-        criterion=True,
-        bonds_and_coordination=NPS_BONDS_AND_COORD
-        )
+        criterion=True, bonds_and_coordination=NPS_BONDS_AND_COORD
+    )
 
     prim_structure = Structure.from_file(
         os.path.join(file_dir, "Li6PS5Cl", "prim.cif"), primitive=True
@@ -137,8 +136,7 @@ def test_Li6PS5Cl():
     print("\n\n\n\nchecking subrequirement\n\n\n\n")
     ev.interpret_returned_value(result2)
 
-
-    ev=CoordinationEvaluator1(bonds_and_coordination=NPS_BONDS_AND_COORD)
+    ev = CoordinationEvaluator1(bonds_and_coordination=NPS_BONDS_AND_COORD)
     result3 = ev._check_coordination(
         structure=prim_structure,
         bonds_and_coordination=[

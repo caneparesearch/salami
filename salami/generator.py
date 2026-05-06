@@ -32,9 +32,9 @@ from salami.utils import (
     determine_available_cpus,
     get_symmetric_but_possibly_charged_slab,
     _charge_representable_with_counts,
-    check_slab_symmetry
+    check_slab_symmetry,
 )
-from salami.utils import realign_slab
+from salami.utils import realign_slab,_realign_slab_thread
 from salami.config import settings
 
 log_level = {
@@ -385,20 +385,19 @@ class Affettatrice(AbstractGenerator):
             _hkl = tuple(miller_index)
 
             sga = SpacegroupAnalyzer(self.initial_structure)
-            
+
             space_group = sga.get_space_group_symbol()
 
             symm_ops = sga.get_symmetry_operations()
 
             symmetric_slab_possible, symop = check_slab_symmetry(
-                hkl = _hkl, symm_ops = symm_ops, logger = self.logger
+                hkl=_hkl, symm_ops=symm_ops, logger=self.logger
             )
 
             if not symmetric_slab_possible:
                 self.logger.critical(
                     f"Symmetric slab with miller index {_hkl} on a structure with space_group {space_group} is unlikely to be possible, unless there is unrecognized symmetric motif. \n Refer to the paper to see the reason. \n Salami will try anayway"
                 )
-
 
             possible_slabs = Salumificio(
                 initial_structure=self.initial_structure,
@@ -413,10 +412,6 @@ class Affettatrice(AbstractGenerator):
                 repair=repair,
             )
 
-            
-
-
-
         else:
             raise TypeError(
                 "bad input for miller_index, should be len=3 list or integer"
@@ -428,23 +423,21 @@ class Affettatrice(AbstractGenerator):
             )
 
         realigned_slabs = []
-        for slab in possible_slabs:
-            try:
-                realigned_slab = realign_slab(slab)
-                if realigned_slab is None:
-                    self.logger.critical(
-                        "realignment failed for slab with miller index {},  ".format(
-                            slab.miller_index,
-                        )
-                    )
-                else:
-                    realigned_slabs.append(realigned_slab)
-            except Exception as e:
+
+        results = self.mp(
+            delayed(_realign_slab_thread)(
+                slab=slab,) for slab in possible_slabs  
+        )
+
+        for result in results:
+            if type(result) is str:
                 self.logger.critical(
-                    "realignment failed for slab with miller index {}, . Error message: {}".format(
-                        slab.miller_index, str(e)
-                    )
+                    f"realignment failed for a slab. The error message is {result}. This may be a bug, please contact developer"
                 )
+            elif type(result) is Salami:
+                realigned_slabs.append(result)
+            else:
+                raise TypeError(f"realignment thread returned a result with unexpected type, which may be a bug. Please contact developer. The result is {result} of type {type(result)}")
 
         self.post_generation_process(
             realigned_slabs,

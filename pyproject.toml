@@ -90,6 +90,8 @@ dev = [
     "build",
     "Jinja2",
     "myst_parser",
+    "black",
+    "flake8"
 ]
 
 # Full installation: install via `pip install ".[all]"`

@@ -1069,6 +1069,7 @@ class CoordinationEvaluator1(AbstractCoordinationEvaluator):
     Following three functions are obsolete. They are the basic building blocks of the current coordination checker, but they are not efficient and not designed for parallel computing. They are kept here for record and future reference.
     """
 
+
 class CoordinationEvaluator0_obsolete(AbstractCoordinationEvaluator):
     def __init__(self, criterion, bonds_and_coordination):
         super().__init__(criterion, bonds_and_coordination)

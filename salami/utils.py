@@ -7,6 +7,7 @@ import os
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.analysis.local_env import CutOffDictNN
 
+
 def deep_update(source: dict, overrides: dict) -> dict:
     """Helper for explicit kwargs deep merging."""
     for key, value in overrides.items():
@@ -17,21 +18,22 @@ def deep_update(source: dict, overrides: dict) -> dict:
     return source
 
 
-def log_info(logger,message,level="info"):
+def log_info(logger, message, level="info"):
     if logger and hasattr(logger, level):
         getattr(logger, level)(message)
     else:
         print(message)
 
+
 def check_slab_symmetry(hkl, symm_ops, logger=None):
     """
-     D^T * h = -h 
-    
+     D^T * h = -h
+
     values:
         hkl (list/np.ndarray): miller indices (h, k, l)。
         symm_ops (list): list of SymmOp objects representing the symmetry operations of the crystal.
         logger: fastapi logger or any object with an info method for logging (optional).
-        
+
     return
         (bool, np.ndarray or None): if available: (True, rotation_matrix):
                                    esle: (False, None)。
@@ -43,19 +45,19 @@ def check_slab_symmetry(hkl, symm_ops, logger=None):
     for op in symm_ops:
 
         D = op.rotation_matrix
-        
 
         res = np.dot(D.T, h)
 
-
         if np.allclose(res, target, atol=1e-5):
-            log_info(logger,f"found matching symmetry operation for hkl {hkl}:")
-            log_info(logger,f"rotation matrix D:\n{D}")
+            log_info(logger, f"found matching symmetry operation for hkl {hkl}:")
+            log_info(logger, f"rotation matrix D:\n{D}")
             return True, D
 
-    log_info(logger,f"no matching symmetry operation found for hkl {hkl}, cannot construct symmetric non-polar slab.")
+    log_info(
+        logger,
+        f"no matching symmetry operation found for hkl {hkl}, cannot construct symmetric non-polar slab.",
+    )
     return False, None
-
 
 
 def realign_slab(
@@ -101,6 +103,57 @@ def realign_slab(
     return unitcell_slab
 
 
+
+def _realign_slab_thread(
+    slab: Salami,
+    min_z: float = 3.0,
+    z_threshold: float = 0.9,
+):
+    """
+    This is a function to make sure that all atoms in a slab model has z coordinate ranging from a small value (min_z/lattice.c) to a value smaller than z_threshold (default 0.9)
+    Because pymatgen actually do not determine the surface atoms correctly (anion at surface may be ignored)
+    So instead of making slab starting from z=0, we make the slab start from a small value (min_z/lattice.c) to make sure that all surface atoms are included in the 1st image of unit cell, i.e.,Make sure that slab do not penetrate through the upper and lower ab planes.
+    Otherwise pymatgen do not calculate the dipole correctly!!!!!!!! It is always a polar slab
+
+    """
+
+    unitcell_slab = slab.copy(to_unit_cell=True, valid_proximity=True)
+    surface_sites = unitcell_slab.get_surface_sites(tag=True)
+    topsites = surface_sites["top"]
+    bottomsites = surface_sites["bottom"]
+
+    if len(topsites) == 0:
+        return 'No top sites found'
+    if len(bottomsites) == 0:
+        return 'No bottom sites found'
+
+    topsites_minz = min(topsites, key=lambda x: x[0].frac_coords[2])[0].frac_coords[2]
+    topsites_maxz = max(topsites, key=lambda x: x[0].frac_coords[2])[0].frac_coords[2]
+    bottomsites_maxz = max(bottomsites, key=lambda x: x[0].frac_coords[2])[
+        0
+    ].frac_coords[2]
+    bottomsites_minz = min(bottomsites, key=lambda x: x[0].frac_coords[2])[
+        0
+    ].frac_coords[2]
+
+    if topsites_minz  <= bottomsites_maxz:
+        return f"topsites_minz {topsites_minz} is larger than bottomsites_maxz {bottomsites_maxz}"
+    if topsites_maxz  >= 1:
+        return f"top site z goes over 1 to {topsites_maxz}"
+    if bottomsites_minz  <= 0:
+        return f"bottom site z goes below 0 to {bottomsites_minz}"
+
+
+    unitcell_slab.translate_sites(
+        list(range(len(unitcell_slab))),
+        [0, 0, min_z / slab.lattice.c - bottomsites_minz],
+    )
+
+    if max(unitcell_slab.frac_coords[:, 2]) > z_threshold:
+        return f"after realignment, some sites have z fractional coordinate larger than {z_threshold}, which may cause problem for later processing. Please contact developer as this may be a bug. The maximum z fractional coordinate is {max(unitcell_slab.frac_coords[:,2])}"
+
+    return unitcell_slab
+
 def center_slab(
     slab: Salami,
     min_z: float = 3.0,
@@ -137,12 +190,11 @@ def center_slab(
     )
 
     # now bottom size at min_z / slab.lattice.c,
-    # want to make the center of slab at 0.5, 
+    # want to make the center of slab at 0.5,
     unitcell_slab.translate_sites(
         list(range(len(unitcell_slab))),
         [0, 0, (1 - max(unitcell_slab.frac_coords[:, 2])) / 2],
     )
-
 
     if max(unitcell_slab.frac_coords[:, 2]) > z_threshold:
         raise ValueError(
@@ -150,6 +202,7 @@ def center_slab(
         )
 
     return unitcell_slab
+
 
 # def check_slab_symmetry(
 #     slab: Salami,
@@ -166,6 +219,7 @@ def center_slab(
 #         slab.to(fmt="json",filename=dump_filename)
 #         return False
 
+
 def get_min_bondlength_dict(struct, logger=None):
     """
     Get the minimum bond length between each pair of species in the slab. This is used for later checking whether the slab has unphysically short bond after site removal.
@@ -175,9 +229,7 @@ def get_min_bondlength_dict(struct, logger=None):
         logger (logging.Logger, optional): logger instance for logging messages
         logger (logging.Logger, optional): logger instance for logging messages
     """
-    minimum_bond_length_dict = check_minimum_bonding_distance(
-        struct
-    )
+    minimum_bond_length_dict = check_minimum_bonding_distance(struct)
 
     theoretical_minimum_vacuum_distance = (None, 0)
     for pair_bonds in minimum_bond_length_dict:
@@ -189,18 +241,23 @@ def get_min_bondlength_dict(struct, logger=None):
                 pair_bonds,
                 minimum_bond_length_dict[pair_bonds],
             )
-    log_info(message=f"Analysing the bond distance in the primitive strucutre. The shortest bond length for each pair bond is :\n {minimum_bond_length_dict_to_string(minimum_bond_length_dict,format=None)}, it is recommended to set vacuum and gap larger than the longest bond value {theoretical_minimum_vacuum_distance[1]:.2f} to ensure that Ewald energy is representative", logger=logger, level="warning")
+    log_info(
+        message=f"Analysing the bond distance in the primitive strucutre. The shortest bond length for each pair bond is :\n {minimum_bond_length_dict_to_string(minimum_bond_length_dict,format=None)}, it is recommended to set vacuum and gap larger than the longest bond value {theoretical_minimum_vacuum_distance[1]:.2f} to ensure that Ewald energy is representative",
+        logger=logger,
+        level="warning",
+    )
     # if logger:
     #     logger.warning(
     #         f"Analyzing the bond distance in the primitive strucutre. The shortest bond length for each pair bond is :\n {minimum_bond_length_dict_to_string(minimum_bond_length_dict,format=None)}, it is recommended to set vacuum and gap larger than the longest bond value {theoretical_minimum_vacuum_distance[1]:.2f} to ensure that Ewald energy is representative"
     #     )
-    log_info(message=f"Analyzing the coordination numbers of the primitive structure. This is usually different than the coordination requirement. Don't worry.", logger=logger, level="warning")
+    log_info(
+        message=f"Analyzing the coordination numbers of the primitive structure. This is usually different than the coordination requirement. Don't worry.",
+        logger=logger,
+        level="warning",
+    )
 
     for pair_bonds in minimum_bond_length_dict:
-        if (
-            pair_bonds[0] == pair_bonds[1]
-            or minimum_bond_length_dict[pair_bonds] < 0.1
-        ):
+        if pair_bonds[0] == pair_bonds[1] or minimum_bond_length_dict[pair_bonds] < 0.1:
             continue
         auto_cutoff_dict_nn = CutOffDictNN(
             {pair_bonds: minimum_bond_length_dict[pair_bonds] + 0.1}
@@ -211,7 +268,12 @@ def get_min_bondlength_dict(struct, logger=None):
                 cn_of_this_pair_bond.append(
                     auto_cutoff_dict_nn.get_cn(struct, site_index)
                 )
-        log_info(message=f"{pair_bonds[0]} has at least {min(cn_of_this_pair_bond)} and at most {max(cn_of_this_pair_bond)} {pair_bonds[1]} coordinated within radius of {minimum_bond_length_dict[pair_bonds]+0.1:.2f} Angstrom", logger=logger, level="warning")
+        log_info(
+            message=f"{pair_bonds[0]} has at least {min(cn_of_this_pair_bond)} and at most {max(cn_of_this_pair_bond)} {pair_bonds[1]} coordinated within radius of {minimum_bond_length_dict[pair_bonds]+0.1:.2f} Angstrom",
+            logger=logger,
+            level="warning",
+        )
+
 
 def get_symmetric_but_possibly_charged_slab(
     slab: Salami,
@@ -385,7 +447,6 @@ def check_minimum_bonding_distance(structure):
                     site1.distance(site2, jimage=[1, 0, 0]),
                     site1.distance(site2, jimage=[0, 1, 0]),
                     site1.distance(site2, jimage=[0, 0, 1]),
-                    
                 )
             if distance == 0:
                 raise ValueError(

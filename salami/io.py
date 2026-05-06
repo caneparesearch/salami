@@ -6,7 +6,6 @@ import shlex
 from argparse import ArgumentParser
 from importlib.metadata import version
 
-
 # Assuming these are available in your environment
 
 from salami.generator import Affettatrice
@@ -25,12 +24,9 @@ except Exception:
 
 
 def main():
-    package_version = version('salami')
+    package_version = version("salami")
 
-
-    setting_msg = (
-        f"SALAMI version {package_version} "
-    )
+    setting_msg = f"SALAMI version {package_version} "
 
     parser = GooeyParser(description=setting_msg)
 
@@ -597,7 +593,9 @@ slabgen.generate_initial_slabs(
 
 
 if Gooey is not None:
-    main = Gooey(optional_cols=2, program_name=f"SALAMI GUI", default_size=(1024, 800))(main)
+    main = Gooey(optional_cols=2, program_name=f"SALAMI GUI", default_size=(1024, 800))(
+        main
+    )
 
 
 if __name__ == "__main__":

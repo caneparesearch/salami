@@ -1,10 +1,7 @@
 import os
 import numpy as np
 from pymatgen.core.structure import Structure
-from salami.utils import (
-    check_minimum_bonding_distance,
-    check_slab_symmetry
-)
+from salami.utils import check_minimum_bonding_distance, check_slab_symmetry
 
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
@@ -44,7 +41,7 @@ def test_Na3PS4():
         print(minimum_bonding_distance[bond], shortest_bond_dict[bond])
         assert np.allclose(minimum_bonding_distance[bond], shortest_bond_dict[bond])
 
-    
+
 def test_slab_symmetry():
     nps_i43m = Structure.from_file(
         os.path.join(file_dir, "cubic-Na3PS4", "prim.cif"), primitive=False
@@ -56,27 +53,56 @@ def test_slab_symmetry():
         os.path.join(file_dir, "Li6PS5Cl", "prim.cif"), primitive=False
     )
 
-    symops_imm2 = SpacegroupAnalyzer(lpscl_imm2).get_symmetry_operations(cartesian=False)
+    symops_imm2 = SpacegroupAnalyzer(lpscl_imm2).get_symmetry_operations(
+        cartesian=False
+    )
 
     srtio_fm3m = Structure.from_file(
         os.path.join(file_dir, "SrTiO3", "SrTiO3.cif"), primitive=False
     )
 
-    symops_fm3m = SpacegroupAnalyzer(srtio_fm3m).get_symmetry_operations(cartesian=False)
+    symops_fm3m = SpacegroupAnalyzer(srtio_fm3m).get_symmetry_operations(
+        cartesian=False
+    )
 
+    hkls = [[1, 0, 0], [0, 1, 1], [-1, 2, 3], [2, 1, 0], [-2, 0, 1]]
 
-    hkls = [[1,0,0], [0,1,1], [-1,2,3], [2,1,0], [-2,0,1]]
+    assert (
+        check_slab_symmetry(
+            hkl=[1, 0, 0],
+            symm_ops=symops_i43m,
+        )[0]
+        is True
+    )
+    assert (
+        check_slab_symmetry(
+            hkl=[0, 1, 1],
+            symm_ops=symops_i43m,
+        )[0]
+        is True
+    )
+    assert (
+        check_slab_symmetry(
+            hkl=[-1, 2, 3],
+            symm_ops=symops_i43m,
+        )[0]
+        is False
+    )
+    assert (
+        check_slab_symmetry(
+            hkl=[2, 1, 0],
+            symm_ops=symops_i43m,
+        )[0]
+        is True
+    )
+    assert (
+        check_slab_symmetry(
+            hkl=[-2, 0, 1],
+            symm_ops=symops_i43m,
+        )[0]
+        is True
+    )
 
-    assert check_slab_symmetry(
-        hkl=[1,0,0], symm_ops=symops_i43m,)[0] is True
-    assert check_slab_symmetry(
-        hkl=[0,1,1], symm_ops=symops_i43m,)[0] is True
-    assert check_slab_symmetry(
-        hkl=[-1,2,3], symm_ops=symops_i43m,)[0] is False
-    assert check_slab_symmetry(
-        hkl=[2,1,0], symm_ops=symops_i43m,)[0] is True
-    assert check_slab_symmetry(
-        hkl=[-2,0,1], symm_ops=symops_i43m,)[0] is True
 
 if __name__ == "__main__":
     test_Na3PS4()

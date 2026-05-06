@@ -9,6 +9,7 @@ from pymatgen.core.interface import Interface
 from salami.evaluator import IndexerStamper
 from salami.utils import determine_available_cpus
 
+
 class Dumper:
     def __init__(
         self,
@@ -29,7 +30,7 @@ class Dumper:
             logger (fastlogging.logger, optional): Logger instance for logging. If None then a logger is init. Defaults to None.
         """
         self.dump_root = dump_root
-        self.dump_paths=dump_paths
+        self.dump_paths = dump_paths
         self._dump_paths = (
             {}
         )  # this is the actually used path joined with the dump_root
@@ -68,7 +69,6 @@ class Dumper:
             "valid_slabs": self._filename_for_initial_slabs,
             "tasker_slabs": self._filename_for_initial_slabs,
             "symmetrified_slabs": self._filename_for_initial_slabs,
-
         }
 
         pass
@@ -167,9 +167,6 @@ class Dumper:
             f"A slab with charge {structure.charge:.1f} with name {filename} is added with following information: miller_index: {structure.miller_index}  shift on c direction: {structure.shift:.2f} is polar?: {structure.is_polar()} is symmetric?:{structure.check_slab_symmetry()} bonds broken:{structure.energy} center of mass: [{structure.center_of_mass[0]:.2f},{structure.center_of_mass[1]:.2f},{structure.center_of_mass[2]:.2f}] properties: {[(propertiy_string,structure.site_properties[propertiy_string][0]) for propertiy_string in structure.site_properties]}, interface properties: {structure.interface_properties}"
         )
 
-
-
-
     def dump_structures(self, structures, *args, dump_type="structures", **kwargs):
         """function to dump several structures, the filename is generated based on dump_type as defined in self.filename_generator
 
@@ -264,7 +261,7 @@ class Dumper:
             "Planning to implement a function that will dump several structures in one file to save the disk inode"
         )
 
+
 class SalamiDumper(Dumper):
-    def __init__(
-        self, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)

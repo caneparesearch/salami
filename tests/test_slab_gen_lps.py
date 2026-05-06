@@ -78,6 +78,7 @@ def test_Li3PS4():
         ),
     )
 
+
 if __name__ == "__main__":
     os.system("python rm_generator_dumps.py")
     # test_SrTiO3()
