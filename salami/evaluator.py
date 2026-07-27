@@ -504,79 +504,54 @@ In your case we are now defining the {len(subset)+1}th coordination environment 
 
     def read_bonds_and_coordination(self, logger=None):
         """
-        A function to print the parameter bonds_and_coordination
-        if logger undefined, then directly print the information
+        Parses and logs the bonds_and_coordination parameter cleanly,
+        compatible with structured loggers.
         """
-        if logger is None:
-            log = print
-        else:
-            log = logger.warning
+        log = logger.info if logger else print
 
-        if type(self.bonds_and_coordination) is not list:
+        if not isinstance(self.bonds_and_coordination, list):
             raise ValueError(
-                f"self.bonds_and_coordination must be list of required criteria! Currently the type is {type(self.bonds_and_coordination)}"
+                f"bonds_and_coordination must be a list! Current type: {type(self.bonds_and_coordination)}"
             )
 
-        for ith_required_bonds_coordinations, required_bonds_coordinations in enumerate(
-            self.bonds_and_coordination
-        ):
-            """Format hint
+        log(">>> [Config] Parsing bonds and coordination requirements...")
 
-            Args:
-                required_bonds_coordinations(tuple): tuple of dictionaries. Need either dictionary fulfill the problem (OR)
-
-            """
-            log(f"\n\n\nCoordination Requirement {ith_required_bonds_coordinations}:\n")
-            if type(required_bonds_coordinations) is not tuple:
+        for i, req_group in enumerate(self.bonds_and_coordination):
+            if not isinstance(req_group, tuple):
                 raise ValueError(
-                    f"each required bond and coordination is tuple of dictionaries! Currently {ith_required_bonds_coordinations}th requirement is {type(required_bonds_coordinations)}"
+                    f"Requirement group {i} must be a tuple of dictionaries. Current type: {type(req_group)}"
                 )
 
-            for (
-                ith_bonds_coordinations_options,
-                bonds_coordinations_options,
-            ) in enumerate(required_bonds_coordinations):
-                """
-                Args:
-                    required_bonds_coordinationsinenumerate (tuple): tuple of dictionaries
-                    bonds_coordinations_optionsinenumerate (dictionary): Dictionary that record at least 1 coordination. All coordiantion in dictionary must be fulfilled (AND)
+            for j, option_dict in enumerate(req_group):
+                if not isinstance(option_dict, dict):
+                    raise ValueError(f"Option {j} in requirement {i} must be a dictionary.")
 
-                """
-                bonds_coordinations_information = ""
-                if type(bonds_coordinations_options) is not dict:
-                    raise ValueError(
-                        f"each required bond and coordination is tuple of dictionaries! Currently {bonds_coordinations_options} requirement is {type(bonds_coordinations_options)}"
-                    )
-
-                for bond in bonds_coordinations_options:
-                    """
-                    bond: 2 element Tuple
-                    """
-                    if type(bond) is not tuple:
-                        raise TypeError(f"bond {bond} must be tuple")
-                    if len(bond) != 2:
-                        raise ValueError(f"bond {bond} must be two element tuple")
-                    if type(bonds_coordinations_options[bond]) is not tuple:
-                        raise TypeError(
-                            "bonds_coordinations_options[bond] must be tuple"
-                        )
-                    if len(bonds_coordinations_options[bond]) != 3:
+                and_conditions = []
+                for bond, params in option_dict.items():
+                    if not isinstance(bond, tuple) or len(bond) != 2:
+                        raise ValueError(f"Bond {bond} must be a 2-element tuple.")
+                    if not isinstance(params, tuple) or len(params) != 3:
                         raise ValueError(
-                            "bonds_coordinations_options[bond] is len=3 tuple as (bond_length:float, minimum_coordination:int, maximum_coordination:int)"
+                            f"Parameters for bond {bond} must be a 3-element tuple: (length, min_cn, max_cn)."
                         )
 
-                    bonds_coordinations_information += f"\tfor bond {bond} with length {bonds_coordinations_options[bond][0]}, center atom {bond[0]} need at least {bonds_coordinations_options[bond][1]} and at most {bonds_coordinations_options[bond][2]} {bond[1]} atoms coordinated, and \n"
+                    center, neighbor = bond
+                    dist, c_min, c_max = params
+                    
+                    # Clean semantic representation of the chemical constraint
+                    and_conditions.append(f"[{center}] requires {c_min} to {c_max} [{neighbor}] (d < {dist} Å)")
 
-                log(bonds_coordinations_information[:-7])
+                # Combine multiple AND constraints into a single line dynamically
+                and_str = " AND ".join(and_conditions)
+                
+                # Format prefix to indicate OR relationships clearly
+                prefix = f"Req {i}"
+                if len(req_group) > 1:
+                    prefix += f" (Opt {j})"
+                    
+                log(f"    - {prefix}: {and_str}")
 
-                if (
-                    ith_bonds_coordinations_options
-                    != len(required_bonds_coordinations) - 1
-                ):
-                    log("\t\tOR")
-        log(
-            "\n\nparsing bonds and coordination requirements END\n\n--------------------------------------------\n"
-        )
+        log(">>> [Config] Coordination requirements parsed successfully.")
         return self.bonds_and_coordination
 
     def check_slab_validity_after_removal(
@@ -629,6 +604,7 @@ In your case we are now defining the {len(subset)+1}th coordination environment 
 
         log(result_str)
 
+import copy
 
 class CoordinationEvaluator1(AbstractCoordinationEvaluator):
     """
@@ -646,15 +622,119 @@ class CoordinationEvaluator1(AbstractCoordinationEvaluator):
         self.stamp = "pass_coordination_number_test"
         self.local_env_finders = {}
 
+
+    @classmethod
+    def _check_coordination(
+        self,
+        structure,
+        bonds_and_coordination,
+        coordination_info=None,
+        quit_on_failure=False,
+        is_surface_slab=True,
+        sites_to_be_removed=None,
+        add_to_dtol: float = 0,
+    ):
+        if is_surface_slab:
+            check_only_indices = self._get_sufficient_indices_for_coordination_check(
+                structure, bonds_and_coordination, add_to_dtol
+            )
+            check_only_indices = set(check_only_indices)
+        else:
+            check_only_indices = set(range(len(structure)))
+
+        if coordination_info is None:
+            coordination_info = self._get_coordination_info(
+                structure,
+                bonds_and_coordination,
+                check_only_indices,
+                quit_on_failure=quit_on_failure,
+                add_to_dtol=add_to_dtol,
+            )
+
+        if sites_to_be_removed:
+            coordination_info = self._get_coordination_after_site_removal(
+                coordination_info,
+                sites_to_be_removed,
+            )
+            removed_set = set(sites_to_be_removed)
+        else:
+            removed_set = set()
+
+        output_cci = set()
+        output_wci = set()
+        for subrequirement in bonds_and_coordination:
+            s_cci = set()
+            s_wci = set()
+            for subsubrequirement in subrequirement:
+                ss_cci = set()
+                ss_wci = set()
+                for bond in subsubrequirement:
+                    
+                    distance = subsubrequirement[bond][0]
+                    min_coord_num = subsubrequirement[bond][1]
+                    max_coord_num = subsubrequirement[bond][2]
+                    center_atom = bond[0]
+                    
+                    bond_key = (bond[0], bond[1], distance, min_coord_num, max_coord_num)
+
+                    sss_cci = set()
+                    sss_wci = set()
+                    for site_index in range(len(structure)):
+                        if site_index not in check_only_indices:
+                            continue
+                        if site_index in removed_set:
+                            continue
+                        if center_atom not in structure[site_index].species:
+                            continue
+                        if bond_key not in coordination_info[site_index]:
+                            continue
+
+                        if coordination_info[site_index][bond_key][0]:
+                            sss_cci.add(int(site_index))
+                        else:
+                            sss_wci.add(int(site_index))
+
+                    ss_cci.update(sss_cci)
+                    ss_wci.update(sss_wci)
+
+                ss_cci = ss_cci - ss_wci
+                s_cci.update(ss_cci)
+                s_wci.update(ss_wci)
+
+            s_wci = s_wci - s_cci
+            output_cci.update(s_cci)
+            output_wci.update(s_wci)
+
+        output_cci = list(output_cci - output_wci)
+        output_wci = list(output_wci)
+        output_bool = len(output_wci) == 0
+
+        return output_bool, output_cci, output_wci, coordination_info
+    
+    @classmethod
+    def _check_coordination_after_site_removal(
+        self,
+        structure,
+        bonds_and_coordination,
+        coordination_info=None,
+        quit_on_failure=False,
+        is_surface_slab=True,
+        sites_to_be_removed=None,
+        add_to_dtol: float = 0,
+    ):
+        return self._check_coordination(
+            structure,
+            bonds_and_coordination,
+            coordination_info=coordination_info,
+            quit_on_failure=quit_on_failure,
+            is_surface_slab=is_surface_slab,
+            sites_to_be_removed=sites_to_be_removed,
+            add_to_dtol=add_to_dtol,
+        )
+    
+
     def check_coordination(self, structure_to_be_check):
-        """Check the coordination of input structure
-
-        Args:
-            structure_to_be_check (Salami or Interface ): input structure
-
-        Returns:
-            Tuple: Tuple[0] is True or False, indicate whether this structure is correctly coordinated. Tuple[1] is a dictionary, recording all of the coordination tested in this structure according to self.bond_and_coordination. The key of the dictionary is the site index, the value of the dictionary is a dictionary, recording the coordination information of this site. The key of the subdictionary is the bond, the value of the subdictionary is a tuple of 4 elements, the first element is True or False, indicate whether this site is correctly coordinated with a subrequirement. The second element is the coordination number of this site. The third element is the minimum coordination number of this site. The fourth element is the maximum coordination number of this site.
-        """
+        """Check the coordination of input structure"""
         (
             correctly_coordinated,
             correct_coordination_index,
@@ -665,15 +745,10 @@ class CoordinationEvaluator1(AbstractCoordinationEvaluator):
             bonds_and_coordination=self.bonds_and_coordination,
             quit_on_failure=False,
         )
-
         return correctly_coordinated, coordination_information
 
     def check_slab_validity_after_removal(self, structure_to_be_check):
-        """
-        The same as check_coordiantion.
-
-        """
-
+        """The same as check_coordiantion."""
         return self._check_coordination(
             structure_to_be_check,
             bonds_and_coordination=self.bonds_and_coordination,
@@ -687,21 +762,7 @@ class CoordinationEvaluator1(AbstractCoordinationEvaluator):
         bonds_and_coordination,
         add_to_dtol: float = 0,
     ):
-        """To check the coordination of the a symmetric surface slab its is sufficient to check the
-        coordination of few layers of atoms close to the surface in one half of the slab. This code
-        gets the indices of atoms that are close to bottom half of the slab within dtol Angstroms from
-        the surface.
-
-        Args:
-            structure (Salami) : slab structure
-            dtol (float): distance from the surface till which the indices should be taken.
-
-        Returns:
-            check_only_indices: list of indices that are close to the surface in the bottom half of slab.
-        """
-
-        check_only_indices = list(range(len(structure)))
-        return check_only_indices
+        return list(range(len(structure)))
 
     @classmethod
     def _get_coordination_after_site_removal(
@@ -709,51 +770,27 @@ class CoordinationEvaluator1(AbstractCoordinationEvaluator):
         coordination_info,
         sites_to_be_removed,
     ):
-        """Takes in a coordination_information and updates it after removing sites
-        in sites_to_be_removed.
-
-        Args:
-            coordination_info: Must be provided.
-            sites_to_be_removed: List of indices to be removed.
-
-        Returns:
-            output: New coordination information
-        """
-
-        # Copying the coordination_info to update and return
         output = copy.deepcopy(coordination_info)
-
-        # Deleting the site_index keys present in sites_to_be_removed.
+        
         for site_index in sites_to_be_removed:
-            output.pop(site_index)
+            output.pop(site_index, None)
 
-        # Iterating throuh the available site_index key and bond_key in output.
         for site_index in output:
             for bond_key in output[site_index]:
-
                 old_coord_num = output[site_index][bond_key][1]
                 min_coord_num = output[site_index][bond_key][2]
                 max_coord_num = output[site_index][bond_key][3]
                 new_coord_indices = output[site_index][bond_key][4].copy()
 
-                # Iterating through the list of coordinated indices and
-                # removing, if presnet in sites_to_be_removed.
                 for index in output[site_index][bond_key][4]:
                     if index in sites_to_be_removed:
                         new_coord_indices.remove(index)
 
-                # If the number of coordinated indices is same as before
-                # then no need to update.
                 if len(new_coord_indices) == old_coord_num:
                     continue
 
-                # Checking coordination condition after removing the indices.
-                if min_coord_num > len(new_coord_indices):
-                    condition = False
-                else:
-                    condition = True
-
-                # Updating the output with the new information.
+                condition = min_coord_num <= len(new_coord_indices) <= max_coord_num
+                
                 output[site_index][bond_key] = (
                     condition,
                     len(new_coord_indices),
@@ -765,114 +802,6 @@ class CoordinationEvaluator1(AbstractCoordinationEvaluator):
         return output
 
     @classmethod
-    def _check_coordination_after_site_removal(
-        cls,
-        structure,
-        bonds_and_coordination,
-        coordination_info,
-        sites_to_be_removed,
-        add_to_dtol: float = 0,
-    ):
-        """Mostly as _check_coordination except with modifications to include removal of atoms.
-
-        Args:
-            strucutre: Input Salami or Structure that is to be checked.
-            bonds_and_coordination: Input conditions that are to be satisfied. It is a list of tuples of dictonaries with
-            tuple of Element, bonded Element as keys and values as tuple of distance thereshold, minimum coordination threshold,
-            maximun coordination thresold.
-            coordination_information (Optional): If not provided, it is calculated.
-            sites_to_be_removed (list): list of indices that are to be removed/ignored.
-
-        Returns:
-            True or False, list of sites that satisfy the coordinated, list of sites that fail/ are under coordinated,
-            coordination information.
-        """
-        check_only_indices = cls._get_sufficient_indices_for_coordination_check(
-            structure, bonds_and_coordination, add_to_dtol
-        )
-        check_only_indices = set(check_only_indices)
-
-        # Getting the new coordination information after removal of sites
-        new_coordination_info = (
-            CoordinationEvaluator._get_coordination_after_site_removal(
-                coordination_info,
-                sites_to_be_removed,
-            )
-        )
-
-        # correct coordination indices: cci # indicates the indices that passed the conditions of the current loop.
-        # wrong coordination indices: wci # indicates the indices that failed the conditions of the current loop.
-
-        # Initilizing cci's and wci's with in each loop and iterating through the conditions in the bonds_and_coordination.
-        output_cci = set()
-        output_wci = set()
-        for subrequirement in bonds_and_coordination:
-            s_cci = set()
-            s_wci = set()
-            for subsubrequirement in subrequirement:
-                ss_cci = set()
-                ss_wci = set()
-                for bond in subsubrequirement:
-
-                    distance = subsubrequirement[bond][0]
-                    center_atom = bond[0]
-
-                    sss_cci = set()
-                    sss_wci = set()
-                    for site_index in range(len(structure)):
-
-                        if site_index not in check_only_indices:
-                            continue
-
-                        if site_index in sites_to_be_removed:
-                            continue
-
-                        if center_atom not in structure[site_index].species:
-                            continue
-
-                        if (bond[0], bond[1], distance) not in new_coordination_info[
-                            site_index
-                        ]:
-                            continue
-
-                        # Adding the site_index to cci or wci depending on weather the coordination condition
-                        # of the bond is satisfied or not.
-                        if new_coordination_info[site_index][
-                            (bond[0], bond[1], distance)
-                        ][0]:
-                            sss_cci.add(site_index)
-                        else:
-                            sss_wci.add(site_index)
-
-                    ss_cci.update(sss_cci)
-                    ss_wci.update(sss_wci)
-
-                # Since all the bond conditions in given subsubrequirement must be satisfied,
-                # removing the indices that failed from the indices that passed.
-                ss_cci = ss_cci - ss_wci
-
-                s_cci.update(ss_cci)
-                s_wci.update(ss_wci)
-
-            # Since any subsubrequirement condition in subrequirement is sufficient,
-            # removing the indices that passed from the indices that failed.
-            s_wci = s_wci - s_cci
-
-            output_cci.update(s_cci)
-            output_wci.update(s_wci)
-
-        # Since all the subrequirements in bonda_and_coordination must be satisfied,
-        # removing the indices that failed from the indices that passed.
-        output_cci = list(output_cci - output_wci)
-        output_wci = list(output_wci)
-
-        # To check if the given structure satisfied the conditions in bonds_and_coordination,
-        # checking weather the wrong coordination indices is empty or not.
-        output_bool = len(output_wci) == 0
-
-        return output_bool, output_cci, output_wci, new_coordination_info
-
-    @classmethod
     def _get_coordination_info(
         cls,
         structure,
@@ -881,72 +810,37 @@ class CoordinationEvaluator1(AbstractCoordinationEvaluator):
         quit_on_failure=False,
         add_to_dtol=0.0,
     ):
-        """To Get the Coordination information.
-
-        Args:
-            structure (Structure or Salami): Input strucutre to get the coordination information.
-
-        Returns:
-            coord_info (Dictonary): A dictonary with site index as keys and values as a dictonary for
-            each bond with tuple of (atom, bonding atom, distance threshold as keys) and values as a tuple
-            of (True or False weather bond coordination condition satisfied or not, coordination number,
-            minimun coordination threshold, maximun coordination threshold, list of indices
-            of coordinated atoms)
-        """
-
         if check_only_indices is None:
             check_only_indices = cls._get_sufficient_indices_for_coordination_check(
                 structure, bonds_and_coordination, add_to_dtol=add_to_dtol
             )
             check_only_indices = set(check_only_indices)
 
-        # Initializing the coord_info, as an empty dictonary, for each site in structure.
-        coord_info = {}
-        for site_index in range(len(structure)):
-            coord_info[site_index] = {}
+        coord_info = {site_index: {} for site_index in range(len(structure))}
 
-        # Iterating through all the conditions is bonds_and_coordination dictonary and its sub dictonaries.
         for subrequirement in bonds_and_coordination:
             for subsubrequirement in subrequirement:
                 for bond in subsubrequirement:
-
                     distance, min_coord_num, max_coord_num = subsubrequirement[bond]
                     cutoffdictnn = CutOffDictNN({bond: distance})
                     center_atom = bond[0]
 
-                    for site_index in range(0, len(structure)):
-
+                    for site_index in range(len(structure)):
                         if site_index not in check_only_indices:
                             continue
 
                         if center_atom not in structure[site_index].species:
                             continue
 
-                        # Collecting the indices of the coordinated neighbours.
-                        coord_indices = []
-                        for neighbor_info in cutoffdictnn.get_nn_info(
-                            structure, site_index
-                        ):
-                            coord_indices.append(
-                                int(neighbor_info["site_index"])
-                            )  # so that int is jsonable
+                        coord_indices = [
+                            int(neighbor_info["site_index"])
+                            for neighbor_info in cutoffdictnn.get_nn_info(structure, site_index)
+                        ]
 
-                        # Checking if the coordination condition is satisfied or not
-                        if min_coord_num > len(coord_indices):
-                            condition = False
-                        elif max_coord_num >= len(coord_indices):
-                            condition = True
-                        else:
-                            raise ValueError(
-                                f"""Coordination number is greater than maximum expected value.
-                            Current Value: {len(coord_indices)},
-                            Expected Maximum Value: {max_coord_num}),
-                            Distance Used for Coordination: {distance},
-                            Decrease The Distance Used or Enter The Correct Maximum Coordination number."""
-                            )
-
-                        # Updating the coord_info with all the information.
-                        coord_info[site_index][(bond[0], bond[1], distance)] = (
+                        condition = min_coord_num <= len(coord_indices) <= max_coord_num
+                        bond_key = (bond[0], bond[1], distance, min_coord_num, max_coord_num)
+                        
+                        coord_info[site_index][bond_key] = (
                             condition,
                             len(coord_indices),
                             min_coord_num,
@@ -955,121 +849,10 @@ class CoordinationEvaluator1(AbstractCoordinationEvaluator):
                         )
 
         return coord_info
-
-    def _check_coordination(
-        self,
-        structure,
-        bonds_and_coordination,
-        coordination_info=None,
-        quit_on_failure=False,
-        is_surface_slab=True,
-    ):
-        """To check if the input Salami or Structure satisfies the condition given in bonds_and_coordination and get the
-        indices of well coordinated, under coordinated sites and the coordination information.
-
-        Args:
-            strucutre: Input Salami or Structure that is to be checked.
-            bonds_and_coordination: Input conditions that are to be satisfied. It is a list of tuples of dictonaries with
-            tuple of Element, bonded Element as keys and values as tuple of distance thereshold, minimum coordination threshold,
-            maximun coordination thresold.
-            coordination_information (Optional): If not provided, it is calculated.
-
-        Returns:
-            True or False, list of sites that satisfy the coordinated, list of sites that fail/ are under coordinated,
-            coordination information.
-        """
-        if is_surface_slab:
-            check_only_indices = self._get_sufficient_indices_for_coordination_check(
-                structure, bonds_and_coordination
-            )
-            check_only_indices = set(check_only_indices)
-        else:
-            check_only_indices = set(range(len(structure)))
-
-        # Calculating the coordination information if is not provided.
-        if coordination_info is None:
-            coordination_info = CoordinationEvaluator._get_coordination_info(
-                structure,
-                bonds_and_coordination,
-                check_only_indices,
-                quit_on_failure=quit_on_failure,
-            )
-
-        # correct coordination indices: cci # indicates the indices that satisfy the conditions of the current loop.
-        # wrong coordination indices: wci # indicates the indices that do not satisfy the conditions of the current loop.
-
-        # Initilizing cci's and wci's with in each loop and iterating through the conditions in the bonds_and_coordination.
-        output_cci = set()
-        output_wci = set()
-        for subrequirement in bonds_and_coordination:
-            s_cci = set()
-            s_wci = set()
-            for subsubrequirement in subrequirement:
-                ss_cci = set()
-                ss_wci = set()
-                for bond in subsubrequirement:
-
-                    distance = subsubrequirement[bond][0]
-                    center_atom = bond[0]
-
-                    sss_cci = set()
-                    sss_wci = set()
-                    for site_index in range(len(structure)):
-
-                        # we can only check this for half of the slab. Since the slabs are symmetric
-                        if site_index not in check_only_indices:
-                            continue
-
-                        if center_atom not in structure[site_index].species:
-                            continue
-
-                        if (bond[0], bond[1], distance) not in coordination_info[
-                            site_index
-                        ]:
-                            continue
-
-                        # Adding the site_index to cci or wci depending on weather the coordination condition
-                        # of the bond is satisfied or not.
-                        if coordination_info[site_index][(bond[0], bond[1], distance)][
-                            0
-                        ]:
-                            sss_cci.add(int(site_index))
-                        else:
-                            sss_wci.add(int(site_index))
-
-                    ss_cci.update(sss_cci)
-                    ss_wci.update(sss_wci)
-
-                # Since all the bond conditions in given subsubrequirement must be satisfied,
-                # removing the indices that failed from the indices that passed.
-                ss_cci = ss_cci - ss_wci
-
-                s_cci.update(ss_cci)
-                s_wci.update(ss_wci)
-
-            # Since any subsubrequirement condition in subrequirement is sufficient,
-            # removing the indices that passed from the indices that failed.
-            s_wci = s_wci - s_cci
-
-            output_cci.update(s_cci)
-            output_wci.update(s_wci)
-
-        # Since all the subrequirements in bonda_and_coordination must be satisfied,
-        # removing the indices that failed from the indices that passed.
-        output_cci = list(output_cci - output_wci)
-        output_wci = list(output_wci)
-
-        # To check if the given structure satisfied the conditions in bonds_and_coordination,
-        # checking weather the wrong coordination indices is empty or not.
-        output_bool = len(output_wci) == 0
-
-        return output_bool, output_cci, output_wci, coordination_info
-
-    """
-    Following three functions are obsolete. They are the basic building blocks of the current coordination checker, but they are not efficient and not designed for parallel computing. They are kept here for record and future reference.
-    """
-
-
+    
+    
+    
+    
 class CoordinationEvaluator0_obsolete(AbstractCoordinationEvaluator):
     def __init__(self, criterion, bonds_and_coordination):
         super().__init__(criterion, bonds_and_coordination)
@@ -1501,7 +1284,7 @@ class StructureEvaluator(AbstractEvaluator):
         pass
 
     @classmethod
-    def from_criteria(cls, criteria, criteria_parameters={}):
+    def from_criteria(self, criteria, criteria_parameters={}):
         """build from criteria
 
         Args:
@@ -1536,7 +1319,7 @@ class StructureEvaluator(AbstractEvaluator):
                     evaluator_kwargs[parameter] = criteria_parameters[parameter]
             evaluators[criterion] = evaluator(**evaluator_kwargs)
 
-        return cls(evaluators, criteria)
+        return self(evaluators, criteria)
 
     def add_evaluator(self, evaluator):
         self.evaluators.append(evaluator)
@@ -1722,6 +1505,62 @@ def check_slab_validity_after_removal2(
         This could be trouble sometime!
         """
         return False, None, this_combination_
+
+    return True, this_orthogonal_slab, this_combination_
+
+
+def check_slab_validity_after_removal3(
+    structure_to_be_check,
+    criteria={},
+    criteria_parameters={},
+    site_removal_combination=(1, 2),
+    coordination_info={},
+    partial_explore_removable_depth=1.0,
+):
+    """
+    This is the function to check the coordination of a slab, used in the symmetrifier routine
+    The site indices defined in site_removal_combination will be removed and the slab will be checked whether it is correctly coordinated (pass the test defined in criteria)
+    2026.2.3 try to optimize the code a bit:
+    """
+
+    this_removed = structure_to_be_check.copy()
+    this_combination_ = site_removal_combination
+
+    if "pass_coordination_number_test" in criteria:
+        is_correctly_coordinated = (
+            CoordinationEvaluator._check_coordination_after_site_removal(
+                structure=structure_to_be_check,
+                bonds_and_coordination=criteria_parameters["bonds_and_coordination"],
+                coordination_info=coordination_info,
+                sites_to_be_removed=this_combination_,
+                add_to_dtol=partial_explore_removable_depth,
+            )[0]
+        )
+        if criteria["pass_coordination_number_test"] != is_correctly_coordinated:
+
+            return False, "pass_coordination_number_test", this_combination_
+
+    num_sites_before_remove = len(this_removed)
+    this_removed.remove_sites(indices=this_combination_)
+
+    num_sites_after_remove = len(this_removed)
+
+    this_orthogonal_slab = this_removed.get_orthogonal_c_slab()
+
+    slab, (is_valid_slab, failed_reason) = check_validity_thread(
+        criteria,
+        criteria_parameters,
+        this_orthogonal_slab,
+    )
+    if not is_valid_slab:
+        return False, "check_validity_thread", this_combination_
+
+    if not this_orthogonal_slab.check_slab_symmetry():
+        """
+        I still cannot figure out yet why the slab is not symmetric sometime but anyway let's remove the nonsymmetric configurations
+        This could be trouble sometime!
+        """
+        return False, "check_slab_symmetry", this_combination_
 
     return True, this_orthogonal_slab, this_combination_
 

@@ -7,6 +7,7 @@ import os
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.analysis.local_env import CutOffDictNN
 
+import fastlogging
 
 def deep_update(source: dict, overrides: dict) -> dict:
     """Helper for explicit kwargs deep merging."""
@@ -154,10 +155,9 @@ def _realign_slab_thread(
 
     return unitcell_slab
 
-def center_slab(
+def _center_slab_thread(
     slab: Salami,
-    min_z: float = 3.0,
-    z_threshold: float = 0.9,
+    tol = 0.001,
 ):
     """
     This is a function to make sure that all atoms in a slab model has z coordinate ranging from a small value (min_z/lattice.c) to a value smaller than z_threshold (default 0.9)
@@ -167,42 +167,104 @@ def center_slab(
 
     """
 
-    unitcell_slab = slab.copy(to_unit_cell=True, valid_proximity=True)
-    surface_sites = unitcell_slab.get_surface_sites(tag=True)
-    topsites = surface_sites["top"]
-    bottomsites = surface_sites["bottom"]
-    assert len(topsites) > 0, "No top sites found"
-    assert len(bottomsites) > 0, "No bottom sites found"
-    topsites_minz = min(topsites, key=lambda x: x[0].frac_coords[2])[0].frac_coords[2]
-    topsites_maxz = max(topsites, key=lambda x: x[0].frac_coords[2])[0].frac_coords[2]
-    bottomsites_maxz = max(bottomsites, key=lambda x: x[0].frac_coords[2])[
-        0
-    ].frac_coords[2]
-    bottomsites_minz = min(bottomsites, key=lambda x: x[0].frac_coords[2])[
-        0
-    ].frac_coords[2]
-    assert topsites_minz > bottomsites_maxz, (topsites_minz, bottomsites_maxz)
-    assert topsites_maxz < 1, f"top site z goes over 1 to {topsites_maxz}"
-    assert bottomsites_minz > 0, f"bottom site z goes below 0 to {bottomsites_minz}"
-    unitcell_slab.translate_sites(
-        list(range(len(unitcell_slab))),
-        [0, 0, min_z / slab.lattice.c - bottomsites_minz],
-    )
 
-    # now bottom size at min_z / slab.lattice.c,
-    # want to make the center of slab at 0.5,
-    unitcell_slab.translate_sites(
-        list(range(len(unitcell_slab))),
-        [0, 0, (1 - max(unitcell_slab.frac_coords[:, 2])) / 2],
-    )
+    stage1 = slab.copy(to_unit_cell=False, valid_proximity=True)
+    max_z = max(stage1.frac_coords[:, 2])
+    min_z = min(stage1.frac_coords[:, 2])
+    thickness = max_z - min_z
+    if max_z > 1:
 
-    if max(unitcell_slab.frac_coords[:, 2]) > z_threshold:
-        raise ValueError(
-            f"after realignment, some sites have z fractional coordinate larger than {z_threshold}, which may cause problem for later processing. Please contact developer as this may be a bug. The maximum z fractional coordinate is {max(unitcell_slab.frac_coords[:,2])}"
+        if thickness > 1:
+            return f"max z {max_z} goes over 1 and min z {min_z} is smaller than 0, The slab is expanding beyond the primitive cell! This is not good."
+        stage1.translate_sites(
+            list(range(len(stage1))),
+            [0, 0, -min_z + tol],
         )
+
+    if min_z < 0:
+        stage1.translate_sites(
+            list(range(len(stage1))),
+            [0, 0, -min_z + tol],
+        )
+
+    max_z = max(stage1.frac_coords[:, 2])
+    min_z = min(stage1.frac_coords[:, 2])
+
+    if max_z > 1 or min_z < 0 or stage1.center_of_mass[2] < 0 or stage1.center_of_mass[2] > 1:
+        return f"after realignment, max z {max_z} goes over 1 or min z {min_z} goes below 0, The slab is still expanding beyond the primitive cell! This is not good."        
+
+    unitcell_slab = stage1.copy(to_unit_cell=True, valid_proximity=True) # dont care x or y 
+
+    del stage1
+
+    max_z = max(unitcell_slab.frac_coords[:, 2])
+    min_z = min(unitcell_slab.frac_coords[:, 2])
+
+    if max_z > 1 or min_z < 0 or unitcell_slab.center_of_mass[2] < 0 or unitcell_slab.center_of_mass[2] > 1:
+        return f"after realignment and centering, max z {max_z} goes over 1 or min z {min_z} goes below 0, The slab is still expanding beyond the primitive cell! This is not good."
+    if max_z - min_z > 1:
+        return f"after realignment and centering, max z {max_z} goes over 1 and min z {min_z} is smaller than 0, The slab is expanding beyond the primitive cell! This is not good."
+    
+    z_center = (max_z + min_z) / 2
+    shift = 0.5 - z_center
+
+    unitcell_slab.translate_sites(
+        list(range(len(unitcell_slab))),
+        [0, 0, shift],
+    )
+
+    max_z = max(unitcell_slab.frac_coords[:, 2])
+    min_z = min(unitcell_slab.frac_coords[:, 2])
+    if max_z > 1 or min_z < 0 or unitcell_slab.center_of_mass[2] < 0 or unitcell_slab.center_of_mass[2] > 1:
+        return f"after realignment, centering and shifting, max z {max_z} goes over 1 or min z {min_z} goes below 0, The slab is still expanding beyond the primitive cell! This is not good."
+
+    if not np.allclose(unitcell_slab.center_of_mass[2], 0.5, atol=tol):
+        # assuming that the slab is symmetric, the center of mass should be close to 0.5 after realignment, centering and shifting. If not, there may be some problem with the slab, such as some sites are still outside of the primitive cell, or the slab is not symmetric. This may cause problem for later processing, such as calculating the dipole moment and Ewald energy.
+        return f"after realignment, centering and shifting, the center of mass z coordinate is {unitcell_slab.center_of_mass[2]}, which is not close to 0.5. This may cause problem for later processing. "
+    
+
 
     return unitcell_slab
 
+
+
+def align_and_center_slab(slab):
+    """
+    Centers the slab within the unit cell and restores Cartesian connectivity, 
+    regardless of prior application of to_unit_cell or periodic boundary crossing.
+    """
+    slab_centered = slab.copy()
+    
+    # 1. Map all fractional coordinates strictly to [0, 1) to eliminate differences
+    # between continuous and pre-wrapped inputs.
+    frac_z = np.mod(slab_centered.frac_coords[:, 2], 1.0)
+    sorted_z = np.sort(frac_z)
+    
+    # 2. Calculate intervals between adjacent atoms.
+    gaps = np.diff(sorted_z)
+    
+    # 3. Calculate the periodic interval crossing the boundary.
+    periodic_gap = (sorted_z[0] + 1.0) - sorted_z[-1]
+    all_gaps = np.append(gaps, periodic_gap)
+    
+    # 4. Locate the maximum gap (vacuum layer).
+    max_gap_idx = np.argmax(all_gaps)
+    
+    # 5. Calculate the exact center of the vacuum layer.
+    if max_gap_idx == len(gaps):
+        vacuum_center = (sorted_z[-1] + (sorted_z[0] + 1.0)) / 2.0
+    else:
+        vacuum_center = (sorted_z[max_gap_idx] + sorted_z[max_gap_idx + 1]) / 2.0
+        
+    # 6. Define translation vector to shift vacuum center to z=0.0 (or 1.0).
+    shift_z = -vacuum_center
+    
+    # 7. Apply translation and re-wrap. Fragmented slabs will be geometrically 
+    # stitched together at the center of the unit cell.
+    site_indices = list(range(len(slab_centered)))
+    slab_centered.translate_sites(site_indices, [0, 0, shift_z], to_unit_cell=True)
+    
+    return slab_centered
 
 # def check_slab_symmetry(
 #     slab: Salami,
@@ -313,6 +375,28 @@ def get_symmetric_but_possibly_charged_slab(
     except Exception as e:
         return e, None
 
+def _check_symmetric_but_possibly_charged_slab_thread(slab_to_check, iteration):
+    # 在线程内部创建副本来修改，避免在同一工作进程的多次调用间发生内存数据污染
+    test_slab = slab_to_check.copy()
+    
+    # iteration 为 0 时移除 1 个原子，依此类推
+    k = iteration + 1
+    # 获取按 Z 坐标升序排列的索引列表
+    sorted_indices_asc = sorted(range(len(test_slab)), key=lambda x: test_slab[x].frac_coords[2])
+    sites_to_remove = sorted_indices_asc[:k]
+    
+    # 批量移除 Z 坐标最小的原子
+    test_slab.remove_sites(sites_to_remove)
+    test_slab.add_site_property("removed_sites_num", [iteration] * len(test_slab))
+    
+    info = ""
+    if test_slab.check_slab_symmetry():
+        if test_slab.charge % 2 != 0:
+            info += "odd number charge to be compensated found during generating symmetric but possibly charged slab, the slab was made 211 supercell so that the charge is even number"
+            test_slab.make_supercell([2, 1, 1])
+        return True, info, realign_slab(test_slab, min_z=3.0), iteration
+        
+    return False, info, None, iteration
 
 def determine_available_cpus(ncpus=None, logger=None) -> int:
     """
@@ -514,7 +598,30 @@ def print_salami_banner(logger=None):
     else:
         print(banner)
 
+def print_bug_banner(logger=None):
+    banner = """
+---------------------------------------------------
+|                                                 |
+|     BBBBBBB     U       U     GGGGGGG           |
+|     B      B    U       U    G       G          |
+|     B      B    U       U    G                  |
+|     BBBBBBB     U       U    G    GGGG          |
+|     B      B    U       U    G       G          |
+|     B      B    U       U    G       G          |
+|     BBBBBBB      UUUUUUU      GGGGGGG           |
+|                                                 |
+|     SALAMI is rotted to the core                |
+---------------------------------------------------
+An unexpected bug is found, but the program carries on anyway.
+The result might still be useful. 
+    """
 
+    log_info(logger, banner, level="error")
+
+    if logger:
+        logger.info(banner)
+    else:
+        print(banner)
 def _charge_representable_with_counts(target, counts_by_charge):
     # counts_by_charge: dict charge->max_count (non-negative ints)
     reachable = {0}
@@ -533,3 +640,4 @@ def _charge_representable_with_counts(target, counts_by_charge):
 
 
 # try scaling factor a to make target* a representable
+

@@ -51,8 +51,8 @@ class Dumper:
             )
         else:
             self.logger = logger
-        self.ncpus = determine_available_cpus(ncpus)
-        self.mp = Parallel(n_jobs=ncpus)
+        # self.ncpus = determine_available_cpus(ncpus)
+        # self.mp = Parallel(n_jobs=ncpus)
         self.structures = {}
         for dump_type in dump_paths:
             self.structures[dump_type] = []
@@ -148,9 +148,31 @@ class Dumper:
         """
         assert type(structure) is Salami
         filename = f"{self.counter}_{structure.miller_index[0]}_{structure.miller_index[1]}_{structure.miller_index[2]}_shift{structure.shift:.2f}"
-        self.logger.info(
-            f"A slab with name {filename} is added with following information: miller_index: {structure.miller_index}  shift on c direction: {structure.shift:.2f} is polar?: {structure.is_polar()} is symmetric?:{structure.check_slab_symmetry()} bonds broken:{structure.energy} center of mass: [{structure.center_of_mass[0]:.2f},{structure.center_of_mass[1]:.2f},{structure.center_of_mass[2]:.2f}] properties: {[(propertiy_string,structure.site_properties[propertiy_string][0]) for propertiy_string in structure.site_properties]}, interface properties: {structure.interface_properties}"
+        
+        # DOWNGRADED to debug to prevent dictionary spamming in standard output
+        self.logger.debug(
+            f"Dumper received a slab with name {filename} \n miller_index: {structure.miller_index}  shift on c direction: {structure.shift:.2f} is polar?: {structure.is_polar()} is symmetric?:{structure.check_slab_symmetry()} bonds broken:{structure.energy} center of mass: [{structure.center_of_mass[0]:.2f},{structure.center_of_mass[1]:.2f},{structure.center_of_mass[2]:.2f}] properties: {[(propertiy_string,structure.site_properties[propertiy_string][0]) for propertiy_string in structure.site_properties]}, interface properties: {structure.interface_properties}"
         )
+        
+        # Parse interface properties for concise INFO output
+        valid_info = structure.interface_properties.get("valid")
+        valid_str = "Unchecked"
+        if valid_info:
+            is_valid = valid_info[0]
+            if is_valid:
+                valid_str = "Valid"
+            else:
+                # Extract the reason (e.g., 'pass_coordination_number_test') from the nested tuple
+                if len(valid_info) > 1 and isinstance(valid_info[1], tuple) and len(valid_info[1]) > 0:
+                    valid_str = f"Invalid (Failed: {valid_info[1][0]})"
+                else:
+                    valid_str = "Invalid"
+
+        gen_by_raw = structure.interface_properties.get("generated_by", [])
+        gen_by_str = "->".join([g[0] for g in gen_by_raw if isinstance(g, tuple)]) if isinstance(gen_by_raw, list) else str(gen_by_raw)
+
+        # Clean info statement
+        self.logger.info(f"Added initial slab: {filename} | GenBy: [{gen_by_str}] | Status: {valid_str}")
 
         return filename
 
@@ -163,9 +185,32 @@ class Dumper:
         """
         assert type(structure) is Salami
         filename = f"{self.counter}_{structure.miller_index[0]}_{structure.miller_index[1]}_{structure.miller_index[2]}_shift{structure.shift:.2f}_charge_{structure.charge:.1f}"
-        self.logger.info(
-            f"A slab with charge {structure.charge:.1f} with name {filename} is added with following information: miller_index: {structure.miller_index}  shift on c direction: {structure.shift:.2f} is polar?: {structure.is_polar()} is symmetric?:{structure.check_slab_symmetry()} bonds broken:{structure.energy} center of mass: [{structure.center_of_mass[0]:.2f},{structure.center_of_mass[1]:.2f},{structure.center_of_mass[2]:.2f}] properties: {[(propertiy_string,structure.site_properties[propertiy_string][0]) for propertiy_string in structure.site_properties]}, interface properties: {structure.interface_properties}"
+        
+        # DOWNGRADED to debug
+        self.logger.debug(
+            f"Dumper received a symmetric charged slab with name {filename} \n miller_index: {structure.miller_index}  shift on c direction: {structure.shift:.2f} is polar?: {structure.is_polar()} is symmetric?:{structure.check_slab_symmetry()} bonds broken:{structure.energy} center of mass: [{structure.center_of_mass[0]:.2f},{structure.center_of_mass[1]:.2f},{structure.center_of_mass[2]:.2f}] properties: {[(propertiy_string,structure.site_properties[propertiy_string][0]) for propertiy_string in structure.site_properties]}, interface properties: {structure.interface_properties}"
         )
+        
+        # Parse interface properties for concise INFO output
+        valid_info = structure.interface_properties.get("valid")
+        valid_str = "Unchecked"
+        if valid_info:
+            is_valid = valid_info[0]
+            if is_valid:
+                valid_str = "Valid"
+            else:
+                if len(valid_info) > 1 and isinstance(valid_info[1], tuple) and len(valid_info[1]) > 0:
+                    valid_str = f"Invalid (Failed: {valid_info[1][0]})"
+                else:
+                    valid_str = "Invalid"
+
+        gen_by_raw = structure.interface_properties.get("generated_by", [])
+        gen_by_str = "->".join([g[0] for g in gen_by_raw if isinstance(g, tuple)]) if isinstance(gen_by_raw, list) else str(gen_by_raw)
+
+        # Clean info statement
+        self.logger.info(f"Added symmetric charged slab: {filename} | GenBy: [{gen_by_str}] | Status: {valid_str}")
+        return filename
+
 
     def dump_structures(self, structures, *args, dump_type="structures", **kwargs):
         """function to dump several structures, the filename is generated based on dump_type as defined in self.filename_generator
