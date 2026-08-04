@@ -10,3 +10,5 @@ Grain Boundary Code Documentation
    modules/api
    about
 
+.. include:: ../../README.md
+   :parser: myst_parser.sphinx_

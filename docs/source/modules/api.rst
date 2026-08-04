@@ -5,6 +5,12 @@ API Reference Documentation
     :maxdepth: 2
     :caption: Contents:
 
+    utils.rst
+    config.rst
+    abstractor.rst
+    generator.rst
+    dumper.rst
+    pmg_core_interface.rst
     filter.rst
     utils.rst
     io.rst

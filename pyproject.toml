@@ -6,7 +6,7 @@ requires = [
     "Cython==0.29.26; python_version == '3.8'",
     "Cython>=3.0; python_version == '3.12'",
     "numpy==1.22.0; python_version == '3.8'",
-    "numpy>=1.26.0; python_version == '3.12'"
+    "numpy>=1.26.0,<2; python_version == '3.12'"
 ]
 build-backend = "setuptools.build_meta"
 
@@ -46,12 +46,14 @@ dependencies = [
     "colorama; python_version == '3.12'",
     "more-itertools==10.2.0; python_version == '3.12'",
     "seaborn==0.13.2; python_version == '3.12'",
-    "pymatgen<=2025.1.9; python_version == '3.12'", # Version constraint as requested
+    "pymatgen==2023.12.18; python_version == '3.12'", 
+    "monty==2023.11.3; python_version == '3.12'",
     "mpmath; python_version == '3.12'",
 
     # ==========================================
     # 3. Other Python Versions (Untested)
     # ==========================================
+    "numpy<2",
     "matplotlib; python_version != '3.8' and python_version != '3.12'",
     "pandas; python_version != '3.8' and python_version != '3.12'",
     "tqdm; python_version != '3.8' and python_version != '3.12'",
@@ -60,14 +62,14 @@ dependencies = [
     "colorama; python_version != '3.8' and python_version != '3.12'",
     "more-itertools; python_version != '3.8' and python_version != '3.12'",
     "seaborn; python_version != '3.8' and python_version != '3.12'",
-    "pymatgen; python_version != '3.8' and python_version != '3.12'",
+    "pymatgen<2025; python_version != '3.8' and python_version != '3.12'",
     "mpmath; python_version != '3.8' and python_version != '3.12'",
 
     # General dependencies
     "glob2==0.7",
     "dynaconf",
+	"pulp" ,
     "psutil",
-    "fastlogging"
 ]
 
 [project.optional-dependencies]
