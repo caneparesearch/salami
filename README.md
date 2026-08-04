@@ -32,9 +32,9 @@ After configuring git on your machine:
 git clone git@github.com:caneparesearch/salami.git
 cd salami
 export SALAMIENV=salami 
-conda create -n $SALAMIENV python=3.12 wxpython
+conda create -n $SALAMIENV python=3.12 
 conda activate $SALAMIENV
-pip install .[gui]
+pip install .
 
 ```
 
