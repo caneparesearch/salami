@@ -9,7 +9,7 @@ from salami.evaluator import (
     SymmetrifiedSalamiEvaluator,
     ChargeNeutralSalamiEvaluator,
     CoordinationEvaluator1,
-    StochiometricEvaluator,
+    stoichiometricEvaluator,
     LammpsEnergyStamper,
     CoordinationEvaluator0_obsolete,
 )
@@ -294,7 +294,7 @@ def test_break_stoichiometry():
 
     for C in Cs:
 
-        ev = StochiometricEvaluator(stochiometric_reduced_formula=C)
+        ev = stoichiometricEvaluator(stoichiometric_reduced_formula=C)
         s = get_slab()
 
         result, info = ev.evaluate(s)

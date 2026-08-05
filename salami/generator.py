@@ -190,7 +190,7 @@ class Affettatrice(AbstractGenerator):
 
         self.check_initial_structure()
 
-        self.stochiometric_reduced_formula = (
+        self.stoichiometric_reduced_formula = (
             self.initial_structure.composition.get_reduced_composition_and_factor()[0]
         )
 
@@ -263,7 +263,7 @@ class Affettatrice(AbstractGenerator):
                 f"{pair_bonds[0]} has between {min(cn_of_this_pair_bond)} and {max(cn_of_this_pair_bond)} {pair_bonds[1]} coordinated within {self.minimum_bond_length_dict[pair_bonds]+0.1:.2f} Å."
             )
 
-        self.stochiometric_reduced_formula = (
+        self.stoichiometric_reduced_formula = (
             self.initial_structure.composition.get_reduced_composition_and_factor()[0]
         )
 
@@ -471,7 +471,7 @@ class Affettatrice(AbstractGenerator):
             self.logger.warning('Stoichiometric reduced formula missing from criteria_parameters. Falling back to initial structure formula.')
 
         self.criteria_parameters["stoichiometric_reduced_formula"] = kwargs.get(
-            "stochiometric_reduced_formula", self.stochiometric_reduced_formula)
+            "stoichiometric_reduced_formula", self.stoichiometric_reduced_formula)
         self.criteria_parameters["bonds_and_coordination"] = bonds_and_coordination
         self.criteria_parameters["dipole_tolerance"] = dipole_tolerance
 
@@ -713,7 +713,7 @@ class Affettatrice(AbstractGenerator):
         ):
 
             if (
-                self.criteria.get("stochiometric", False)
+                self.criteria.get("stoichiometric", False)
                 and (len(symmetric_possibly_charged_slab) - 2 * num_of_removed_sites_on_each_side)
                 % (len(self.initial_structure) / self.initial_structure.composition.get_reduced_composition_and_factor()[1]) != 0
             ):
@@ -739,15 +739,15 @@ class Affettatrice(AbstractGenerator):
             for combination_to_compensate_charge in combinations_to_compensate_charge:
                 self.logger.debug(f"Identified valid charge pairing: {combination_to_compensate_charge}")
 
-                if self.criteria.get("stochiometric", False):
-                    removal_iterators = self._create_removal_iterators_to_compensate_charge_only_stochiometric(
+                if self.criteria.get("stoichiometric", False):
+                    removal_iterators = self._create_removal_iterators_to_compensate_charge_only_stoichiometric(
                         symmetric_possibly_charged_slab,
                         removable_site_index_dict,
                         combination_to_compensate_charge,
                         group_element_by_charge_dict,
                     )
                 else:
-                    removal_iterators = self._create_removal_iterators_to_compensate_charge_maybe_stochiometric(
+                    removal_iterators = self._create_removal_iterators_to_compensate_charge_maybe_stoichiometric(
                         combination_to_compensate_charge,
                         key_is_charge_value_is_removable_site,
                     )
@@ -824,7 +824,7 @@ class Affettatrice(AbstractGenerator):
                     combinations_to_compensate_charge.append(counts)
         return combinations_to_compensate_charge
 
-    def _create_removal_iterators_to_compensate_charge_only_stochiometric(
+    def _create_removal_iterators_to_compensate_charge_only_stoichiometric(
         self,
         symmetric_possibly_charged_slab,
         removable_site_index_dict={"Li+": (0, 1, 2), "Cl-": (3, 4, 5)},
@@ -860,7 +860,7 @@ class Affettatrice(AbstractGenerator):
                 self.logger.debug(f"Invalid composition logic path encountered: {e}")
                 continue
                 
-            if temp_composition.get_reduced_composition_and_factor()[0] == self.stochiometric_reduced_formula:
+            if temp_composition.get_reduced_composition_and_factor()[0] == self.stoichiometric_reduced_formula:
                 key_is_remove_specie_value_is_removal_amount = {}
                 for removed_specie_tuple_ in removal_specie_possibility:
                     for removed_specie in removed_specie_tuple_:
@@ -869,16 +869,16 @@ class Affettatrice(AbstractGenerator):
                         else:
                             key_is_remove_specie_value_is_removal_amount[removed_specie] = 1
 
-                this_removal_to_stochiometric_is_valid = True
+                this_removal_to_stoichiometric_is_valid = True
                 for specie2 in key_is_remove_specie_value_is_removal_amount:
                     if len(removable_site_index_dict[specie2]) < key_is_remove_specie_value_is_removal_amount[specie2]:
                         self.logger.debug(
                             f"Insufficient available sites for species {specie2} within current depth threshold."
                         )
-                        this_removal_to_stochiometric_is_valid = False
+                        this_removal_to_stoichiometric_is_valid = False
                         break
 
-                if this_removal_to_stochiometric_is_valid:
+                if this_removal_to_stoichiometric_is_valid:
                     self.logger.debug("Stoichiometric criteria passed for current combination branch.")
                     for specie2 in key_is_remove_specie_value_is_removal_amount:
                         removal_iterators.append(
@@ -891,7 +891,7 @@ class Affettatrice(AbstractGenerator):
 
         return removal_iterators
 
-    def _create_removal_iterators_to_compensate_charge_maybe_stochiometric(
+    def _create_removal_iterators_to_compensate_charge_maybe_stoichiometric(
         self,
         combination_to_compensate_charge={1: 2, -1: 2},
         key_is_charge_value_is_removable_site={1: [0, 1, 2], -1: [3, 4, 5]},
@@ -1076,7 +1076,7 @@ class Affettatrice(AbstractGenerator):
         This is used for next step: symmetrically remove the possibly charged slab until it is charge neutral so that the resulting slab is charge neutral, symmetric.
 
         Returns:
-            salami.external.pmg_core_surface.Salami: a symmetric, but possibly charged and non-stochiometric slab
+            salami.external.pmg_core_surface.Salami: a symmetric, but possibly charged and non-stoichiometric slab
         """
         try:
             base_newslab = align_and_center_slab(slab)

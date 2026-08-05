@@ -449,7 +449,7 @@ else:
 slabgen.set_valid_criteria(
     bonds_and_coordination=bonds_coord,
     criteria=parsed_criteria,
-    stochiometric_reduced_formula=stoich_formula,
+    stoichiometric_reduced_formula=stoich_formula,
     dipole_tolerance={args.dipole_tolerance}
 )
 
@@ -520,7 +520,7 @@ slabgen.generate_initial_slabs(
         slabgen.set_valid_criteria(
             bonds_and_coordination=bonds_coord,
             criteria=parsed_criteria,
-            stochiometric_reduced_formula=stoich_formula,
+            stoichiometric_reduced_formula=stoich_formula,
             dipole_tolerance=args.dipole_tolerance,
         )
 
@@ -567,11 +567,11 @@ slabgen.generate_initial_slabs(
 
         override_stoich = args.override_stoichiometry.strip()
         if override_stoich:
-            criteria_parameters["stochiometric_reduced_formula"] = override_stoich
+            criteria_parameters["stoichiometric_reduced_formula"] = override_stoich
         else:
             # 如果没有提供 stoichiometry，通常在 validate 阶段需要从输入结构中提取
             # 具体取决于 salami 内部对未提供该参数的处理逻辑，此处置为 None 或保持为空
-            criteria_parameters["stochiometric_reduced_formula"] = None
+            criteria_parameters["stoichiometric_reduced_formula"] = None
 
         print("--- WorkFlow Execution Setup: Validate Salami ---")
         print(f"Salami Path: {args.salami_path}")

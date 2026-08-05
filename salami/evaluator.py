@@ -1211,25 +1211,25 @@ class SalamiDipoleEvaluator(AbstractEvaluator):
         )
 
 
-class StochiometricEvaluator(AbstractEvaluator):
-    def __init__(self, stochiometric_reduced_formula) -> None:
-        """see whether a structure is stochiometric, the reduced formula of a structure need to equal to the stochiometirc_reduced_formula
+class stoichiometricEvaluator(AbstractEvaluator):
+    def __init__(self, stoichiometric_reduced_formula) -> None:
+        """see whether a structure is stoichiometric, the reduced formula of a structure need to equal to the stochiometirc_reduced_formula
 
         Args:
-            stochiometric_reduced_formula (pmg.composition): A pymatgen composition
+            stoichiometric_reduced_formula (pmg.composition): A pymatgen composition
 
         Raises:
-            ValueError: if the input stochiometric-reduced_formula parameter is not the most reduced formula
+            ValueError: if the input stoichiometric-reduced_formula parameter is not the most reduced formula
         """
         super().__init__()
-        self.stochiometric_formula = stochiometric_reduced_formula
+        self.stoichiometric_formula = stoichiometric_reduced_formula
         self.stamp = "is_stoichiometric"
         if (
-            stochiometric_reduced_formula.get_reduced_composition_and_factor()[0]
-            != stochiometric_reduced_formula
+            stoichiometric_reduced_formula.get_reduced_composition_and_factor()[0]
+            != stoichiometric_reduced_formula
         ):
             raise ValueError(
-                f"stochiometric_reduced_formula {stochiometric_reduced_formula} is not reduced"
+                f"stoichiometric_reduced_formula {stoichiometric_reduced_formula} is not reduced"
             )
 
         pass
@@ -1244,7 +1244,7 @@ class StochiometricEvaluator(AbstractEvaluator):
             structure_to_be_evaluate (structure): structure
 
         Returns:
-            Tuple: tuple[0] is True or False, indicate whether this structure is stochiometric. tuple[1] is the stochiometric-formula of this class.
+            Tuple: tuple[0] is True or False, indicate whether this structure is stoichiometric. tuple[1] is the stoichiometric-formula of this class.
         """
 
         sc = structure_to_be_evaluate.composition.get_reduced_composition_and_factor()[
@@ -1252,12 +1252,12 @@ class StochiometricEvaluator(AbstractEvaluator):
         ]
 
         is_stoichiometric = (
-            sc == self.stochiometric_formula
-            or self.stochiometric_formula == sc
-            or self.stochiometric_formula.almost_equals(sc)
-            or sc.almost_equals(self.stochiometric_formula)
-            or sc.element_composition == self.stochiometric_formula.element_composition
-            or self.stochiometric_formula.element_composition == sc.element_composition
+            sc == self.stoichiometric_formula
+            or self.stoichiometric_formula == sc
+            or self.stoichiometric_formula.almost_equals(sc)
+            or sc.almost_equals(self.stoichiometric_formula)
+            or sc.element_composition == self.stoichiometric_formula.element_composition
+            or self.stoichiometric_formula.element_composition == sc.element_composition
         )
 
         return is_stoichiometric, (
@@ -1265,7 +1265,7 @@ class StochiometricEvaluator(AbstractEvaluator):
                 0
             ],
             "is different from",
-            self.stochiometric_formula,
+            self.stoichiometric_formula,
         )
 
 
@@ -1300,14 +1300,14 @@ class StructureEvaluator(AbstractEvaluator):
             "pass_coordination_number_test": CoordinationEvaluator,
             "is_polar": SalamiDipoleEvaluator,
             "is_symmetric": SymmetrifiedSalamiEvaluator,
-            "is_stoichiometric": StochiometricEvaluator,
+            "is_stoichiometric": stoichiometricEvaluator,
             "charge_neutral": ChargeNeutralSalamiEvaluator,
         }
         Parameters_Dict = {
             "pass_coordination_number_test": ["bonds_and_coordination"],
             "is_polar": ["dipole_tolerance"],
             "is_symmetric": [],
-            "is_stoichiometric": ["stochiometric_reduced_formula"],
+            "is_stoichiometric": ["stoichiometric_reduced_formula"],
             "charge_neutral": [],
         }
 

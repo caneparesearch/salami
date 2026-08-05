@@ -30,7 +30,7 @@ slabgen.set_valid_criteria(
         "charge_neutral": True,
         "is_stoichiometric": True,
     },
-    stochiometric_reduced_formula=slabgen.initial_structure.composition.get_reduced_composition_and_factor()[
+    stoichiometric_reduced_formula=slabgen.initial_structure.composition.get_reduced_composition_and_factor()[
         0
     ],
 )

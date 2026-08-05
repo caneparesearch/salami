@@ -346,7 +346,7 @@ def get_symmetric_but_possibly_charged_slab(
 
 
     Returns:
-        salami.external.pmg_core_surface.Salami: a symmetric, but possibly charged and non-stochiometric slab
+        salami.external.pmg_core_surface.Salami: a symmetric, but possibly charged and non-stoichiometric slab
     """
 
     try:
