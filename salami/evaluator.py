@@ -1211,7 +1211,7 @@ class SalamiDipoleEvaluator(AbstractEvaluator):
         )
 
 
-class stoichiometricEvaluator(AbstractEvaluator):
+class StoichiometricEvaluator(AbstractEvaluator):
     def __init__(self, stoichiometric_reduced_formula) -> None:
         """see whether a structure is stoichiometric, the reduced formula of a structure need to equal to the stochiometirc_reduced_formula
 
@@ -1300,7 +1300,7 @@ class StructureEvaluator(AbstractEvaluator):
             "pass_coordination_number_test": CoordinationEvaluator,
             "is_polar": SalamiDipoleEvaluator,
             "is_symmetric": SymmetrifiedSalamiEvaluator,
-            "is_stoichiometric": stoichiometricEvaluator,
+            "is_stoichiometric": StoichiometricEvaluator,
             "charge_neutral": ChargeNeutralSalamiEvaluator,
         }
         Parameters_Dict = {

@@ -19,7 +19,7 @@ class Dumper:
         },
         format=["cif", "json"],
         logger=None,
-        ncpus=max(1, mp.cpu_count() - 1),
+        ncpus=None,
     ) -> None:
         """The Dumper function, to store the dumped structure. It is planned to implemented several new functions including: automatic memory release, batch dumping to json in order to save disk inode
 
