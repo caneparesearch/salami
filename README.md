@@ -28,6 +28,18 @@ Generating physical and realistic slab models for multinary compounds is challen
 
 Python **3.12** is recommended.
 
+### Singularity / Apptainer image:
+
+Singularity image is available at [https://github.com/caneparesearch/salami/pkgs/container/salami](https://github.com/caneparesearch/salami/pkgs/container/salami)
+
+If your HPC has singularity/apptainer installed, simply do:
+
+`singularity pull oras://ghcr.io/caneparesearch/salami`
+
+The container can be used through commands like:
+
+`singularity exec salami.sif python`
+
 ### Main Installation
 After configuring git on your machine:
 
