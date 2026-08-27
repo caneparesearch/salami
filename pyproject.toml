@@ -12,7 +12,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "salami"
-version = "0.1.dev0"
+version = "0.1.0"
 description = "Symmetric slab model generator for multinary compounds"
 readme = "README.md"
 requires-python = ">=3.12"

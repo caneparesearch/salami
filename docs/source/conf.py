@@ -12,7 +12,7 @@
 #
 import os
 import sys
-
+from importlib.metadata import version
 sys.path.insert(0, os.path.abspath("../../"))
 
 # -- Project information -----------------------------------------------------
@@ -22,7 +22,7 @@ copyright = "2024, Canepa Research Lab"
 author = "Weihang Xie"
 
 # The full version, including alpha/beta/rc tags
-__version__ = "0.1"
+__version__ = version("salami")
 src_dir = os.path.abspath(os.path.dirname(__file__))
 
 
