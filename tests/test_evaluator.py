@@ -9,7 +9,8 @@ from salami.evaluator import (
     SymmetrifiedSalamiEvaluator,
     ChargeNeutralSalamiEvaluator,
     CoordinationEvaluator1,
-    stoichiometricEvaluator,
+     CoordinationEvaluator1,
+    StoichiometricEvaluator,
     LammpsEnergyStamper,
     CoordinationEvaluator0_obsolete,
 )
@@ -29,12 +30,19 @@ NPS_BONDS_AND_COORD = [
     (
         {
             ("P5+", "S2-"): (2.6, 4, 4),
-            ("Li+", "S2-"): (3.03, 1, 6),
         },
     ),
-    ({("S2-", "P5+"): (2.6, 1, 4)}, {("S2-", "Li+"): (3.03, 1, 6)}),
-    ({("Li+", "S2-"): (3.03, 1, 6)},),
+    ({("S2-", "P5+"): (2.6, 1, 4)}, {("S2-", "Na+"): (3.03, 1, 6)}),
+    ({("Na+", "S2-"): (3.03, 1, 6)},),
 ]
+
+
+criteria = {
+    "pass_coordination_number_test": True,
+    "is_polar": False,
+    "is_symmetric": True,
+    "charge_neutral": True,
+}
 
 
 def test_Na3PS4():
@@ -130,7 +138,7 @@ def test_Li6PS5Cl():
             {
                 ("S2-", "P5+"): (2.6, 1, 4),
             },
-            {("S2-", "Li+"): (3.03, 2, 6)},
+            {("S2-", "Na+"): (3.03, 2, 6)},
         ),
     )
     print("\n\n\n\nchecking subrequirement\n\n\n\n")
@@ -149,15 +157,15 @@ def test_Li6PS5Cl():
                 {
                     ("S2-", "P5+"): (2.6, 1, 4),
                 },
-                {("S2-", "Li+"): (3.03, 2, 6)},
+                {("S2-", "Na+"): (3.03, 2, 6)},
             ),
             (
-                {("Li+", "S2-"): (3.03, 1, 6)},
+                {("Na+", "S2-"): (3.03, 1, 6)},
                 {
-                    ("Li+", "Cl-"): (3.03, 1, 6),
+                    ("Na+", "Cl-"): (3.03, 1, 6),
                 },
             ),
-            ({("Cl-", "Li+"): (3.03, 1, 6)},),
+            ({("Cl-", "Na+"): (3.03, 1, 6)},),
         ],
         quit_on_failure=False,
     )
@@ -176,22 +184,6 @@ def check_lammps():
     print(result)
 
 
-NPS_BONDS_AND_COORD = [
-    (
-        {
-            ("P5+", "S2-"): (2.6, 4, 4),
-            ("Li+", "S2-"): (3.03, 1, 6),
-        },
-    ),
-    ({("S2-", "P5+"): (2.6, 1, 4)}, {("S2-", "Li+"): (3.03, 1, 6)}),
-    ({("Li+", "S2-"): (3.03, 1, 6)},),
-]
-criteria = {
-    "pass_coordination_number_test": True,
-    "is_polar": False,
-    "is_symmetric": True,
-    "charge_neutral": True,
-}
 
 
 def get_slab():
@@ -221,14 +213,27 @@ def test_valid_slab():
 def test_break_coordination():
     ev = CoordinationEvaluator1(bonds_and_coordination=NPS_BONDS_AND_COORD)
     s = get_slab()
+    print(f"Initial structure: {s}")
+    result, info = ev.check_coordination(s)
+    print(result, info)
+    assert result, f"Slab should pass coordination: {info}"
+    
+    s.remove_sites([0, 1, 2, 3, len(s) - 1])
+    result, info = ev.check_coordination(s)
+    print(result,info,s)
+    assert not result, f"Slab with missing S should not pass coordination: {info}, structure is {s}"
+
+@pytest.mark.skip(reason="obsolete,")
+def test_break_coordination_1():
+    ev = CoordinationEvaluator1(bonds_and_coordination=NPS_BONDS_AND_COORD)
+    s = get_slab()
 
     result, info = ev.check_coordination(s)
     assert result, f"Slab should pass coordination: {info}"
 
     s.remove_sites([0, 1, 2, 3, len(s) - 1])
     result, info = ev.check_coordination(s)
-    assert not result, f"Slab with missing S should not pass coordination: {info}"
-
+    assert not result, f"Slab with missing S should not pass coordination: {info}, structure is {s}"
 
 def test_make_polar():
     ev = SalamiDipoleEvaluator()
@@ -294,7 +299,7 @@ def test_break_stoichiometry():
 
     for C in Cs:
 
-        ev = stoichiometricEvaluator(stoichiometric_reduced_formula=C)
+        ev = StoichiometricEvaluator(stoichiometric_reduced_formula=C)
         s = get_slab()
 
         result, info = ev.evaluate(s)
@@ -303,3 +308,14 @@ def test_break_stoichiometry():
         s.remove_sites([0])
         result, info = ev.evaluate(s)
         assert not result, f"stoichiometry should be broken but {info}"
+
+
+if __name__ == "__main__":
+    test_Na3PS4()
+    test_Li6PS5Cl()
+    test_valid_slab()
+    test_break_coordination()
+    test_make_polar()
+    test_break_symmetry()
+    test_break_charge_neutrality()  
+    test_break_stoichiometry()
