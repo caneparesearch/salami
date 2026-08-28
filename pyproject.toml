@@ -1,7 +1,7 @@
 [build-system]
 # Crucial: Locking Cython version in the build environment to prevent float_t errors on Python 3.8
 requires = [
-    "setuptools>=61.0",
+    "setuptools>=77",
     "wheel",
     "Cython==0.29.26; python_version == '3.8'",
     "Cython>=3.0; python_version == '3.12'",
