@@ -12,21 +12,19 @@
 #
 import os
 import sys
-from importlib.metadata import version
-sys.path.insert(0, os.path.abspath("../../"))
+from importlib.metadata import version as _get_version   # ← 改名，不要占用 version
 
-# -- Project information -----------------------------------------------------
+sys.path.insert(0, os.path.abspath("../../"))
 
 project = "salami"
 copyright = "2024, Canepa Research Lab"
 author = "Weihang Xie"
 
-# The full version, including alpha/beta/rc tags
-__version__ = version("salami")
+release = _get_version("salami")                  # 完整版本，如 "0.3.1"
+version = ".".join(release.split(".")[:2])        # 短版本，如 "0.3"
+
 src_dir = os.path.abspath(os.path.dirname(__file__))
 
-
-release = __version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -71,4 +69,4 @@ nbsphinx_prompt_width = "0"
 master_doc = "index"
 
 
-source_suffix = [".rst", ".md"]
+source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
