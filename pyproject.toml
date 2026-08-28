@@ -11,12 +11,13 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "salami"
+name = "pysalami"
 version = "0.1.0"
 description = "Symmetric slab model generator for multinary compounds"
 readme = "README.md"
 requires-python = ">=3.12"
-license = {text = "MIT License"}
+license = "MIT"                    
+license-files = ["LICENSE"]
 authors = [
     {name = "Weihang Xie", email = "wxie@u.nus.edu"}
 ]
@@ -98,11 +99,9 @@ dev = [
 
 # Full installation: install via `pip install ".[all]"`
 all = [
-    "salami[gui,dev]"
+    "pysalami[gui,dev]"
 ]
 
-[tool.setuptools]
-package-dir = {"salami" = "salami"}
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -112,5 +111,10 @@ include = ["salami*"]
 [project.scripts]
 salami = "salami.io:main"
 
+[project.urls]
+Homepage = "https://github.com/caneparesearch/salami"
+Documentation = "https://salami.readthedocs.io"
+Issues = "https://github.com/caneparesearch/salami/issues"
+
 [tool.setuptools.package-data]
-salami = ["*.yaml"]
+salami = ["**/*.yaml"]
