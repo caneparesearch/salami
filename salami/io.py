@@ -24,7 +24,7 @@ except Exception:
 
 
 def main():
-    package_version = version("salami")
+    package_version = version("pysalami")
 
     setting_msg = f"SALAMI version {package_version} "
 

@@ -20,7 +20,7 @@ project = "salami"
 copyright = "2024, Canepa Research Lab"
 author = "Weihang Xie"
 
-release = _get_version("salami")                  # 完整版本，如 "0.3.1"
+release = _get_version("pysalami")                  # 完整版本，如 "0.3.1"
 version = ".".join(release.split(".")[:2])        # 短版本，如 "0.3"
 
 src_dir = os.path.abspath(os.path.dirname(__file__))
