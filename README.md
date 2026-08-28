@@ -1,6 +1,6 @@
 # SALAMI: Symmetric, Stoichiometric and Low-energy Slab Model Generator
 
-![image](docs/source/SALAMI.jfif)
+![image](docs/source/salami.png)
 
 
 **Author:** Weihang Xie ([wxie@u.nus.edu](mailto:wxie@u.nus.edu))
